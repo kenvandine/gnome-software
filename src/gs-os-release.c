@@ -126,4 +126,10 @@ gs_os_release_get_pretty_name (GError **error)
 	return gs_os_release_parse_variable ("PRETTY_NAME", error);
 }
 
+gchar *
+gs_os_release_get (const gchar *name, GError **error)
+{
+	return gs_os_release_parse_variable (name, error);
+}
+
 /* vim: set noexpandtab: */

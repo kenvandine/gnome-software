@@ -39,6 +39,8 @@ gchar		 *gs_os_release_get_version		(GError		**error);
 gchar		 *gs_os_release_get_id			(GError		**error);
 gchar		 *gs_os_release_get_version_id		(GError		**error);
 gchar		 *gs_os_release_get_pretty_name		(GError		**error);
+gchar		 *gs_os_release_get			(const gchar	*name,
+							 GError		**error);
 
 G_END_DECLS
 
