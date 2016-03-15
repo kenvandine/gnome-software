@@ -83,15 +83,6 @@ gs_app_row_get_description (GsAppRow *app_row)
 	GsAppRowPrivate *priv = gs_app_row_get_instance_private (app_row);
 	const gchar *tmp = NULL;
 
-	/* convert the markdown update description into PangoMarkup */
-	if (priv->show_update &&
-	    (gs_app_get_state (priv->app) == AS_APP_STATE_UPDATABLE ||
-	     gs_app_get_state (priv->app) == AS_APP_STATE_UPDATABLE_LIVE)) {
-		tmp = gs_app_get_update_details (priv->app);
-		if (tmp != NULL && tmp[0] != '\0')
-			return g_string_new (tmp);
-	}
-
 	if (gs_app_get_state (priv->app) == AS_APP_STATE_UNAVAILABLE)
 		return g_string_new (gs_app_get_summary_missing (priv->app));
 
