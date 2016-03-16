@@ -485,7 +485,10 @@ gs_plugin_add_updates (GsPlugin *plugin,
 				     G_DBUS_ERROR,
 				     G_DBUS_ERROR_SERVICE_UNKNOWN)) {
 			/* the fwupd service might be unavailable, continue in that case */
-			g_prefix_error (error, "could not get fwupd updates: ");
+			if (error) {
+				*error = g_steal_pointer (&error_local);
+				g_prefix_error (error, "could not get fwupd updates: ");
+			}
 			return FALSE;
 		}
 		if (g_error_matches (error_local,
