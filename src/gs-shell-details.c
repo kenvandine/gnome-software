@@ -816,7 +816,8 @@ gs_shell_details_refresh_all (GsShellDetails *self)
 		break;
 	default:
 		gtk_widget_set_sensitive (self->button_history, history->len > 0);
-		gtk_widget_set_visible (self->button_history, TRUE);
+		// Disabled on Ubuntu as we don't have history support
+		gtk_widget_set_visible (self->button_history, FALSE);//TRUE);
 		break;
 	}
 
