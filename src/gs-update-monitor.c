@@ -90,17 +90,21 @@ notify_offline_update_available (GsUpdateMonitor *monitor)
 		body = _("It is recommended that you install important updates now");
 		n = g_notification_new (title);
 		g_notification_set_body (n, body);
-		g_notification_add_button (n, _("Restart & Install"), "app.reboot-and-install");
-		g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+		if (!gs_utils_is_current_desktop ("Unity")) {
+			g_notification_add_button (n, _("Restart & Install"), "app.reboot-and-install");
+			g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+		}
 		g_application_send_notification (monitor->application, "updates-available", n);
 	} else {
 		title = _("Software Updates Available");
 		body = _("Important OS and application updates are ready to be installed");
 		n = g_notification_new (title);
 		g_notification_set_body (n, body);
-		g_notification_add_button (n, _("Not Now"), "app.nop");
-		g_notification_add_button_with_target (n, _("View"), "app.set-mode", "s", "updates");
-		g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+		if (!gs_utils_is_current_desktop ("Unity")) {
+			g_notification_add_button (n, _("Not Now"), "app.nop");
+			g_notification_add_button_with_target (n, _("View"), "app.set-mode", "s", "updates");
+			g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+		}
 		g_application_send_notification (monitor->application, "updates-available", n);
 	}
 }
@@ -242,7 +246,8 @@ get_upgrades_finished_cb (GObject *object,
 	/* TRANSLATORS: this is a distro upgrade */
 	n = g_notification_new (_("Software Upgrade Available"));
 	g_notification_set_body (n, body);
-	g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+	if (!gs_utils_is_current_desktop ("Unity"))
+		g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
 	g_application_send_notification (monitor->application, "upgrades-available", n);
 }
 
@@ -438,8 +443,10 @@ get_updates_historical_cb (GObject *object, GAsyncResult *res, gpointer data)
 			notification = g_notification_new (_("Software Updates Failed"));
 			/* TRANSLATORS: message when we offline updates have failed */
 			g_notification_set_body (notification, _("An important OS update failed to be installed."));
-			g_notification_add_button (notification, _("Show Details"), "app.show-offline-update-error");
-			g_notification_set_default_action (notification, "app.show-offline-update-error");
+			if (!gs_utils_is_current_desktop ("Unity")) {
+				g_notification_add_button (notification, _("Show Details"), "app.show-offline-update-error");
+				g_notification_set_default_action (notification, "app.show-offline-update-error");
+			}
 			g_application_send_notification (monitor->application, "offline-updates", notification);
 		}
 		return;
@@ -468,8 +475,10 @@ get_updates_historical_cb (GObject *object, GAsyncResult *res, gpointer data)
 	 * users can't express their opinions here. In some languages
 	 * "Review (evaluate) something" is a different translation than
 	 * "Review (browse) something." */
-	g_notification_add_button_with_target (notification, C_("updates", "Review"), "app.set-mode", "s", "updated");
-	g_notification_set_default_action_and_target (notification, "app.set-mode", "s", "updated");
+	if (!gs_utils_is_current_desktop ("Unity")) {
+		g_notification_add_button_with_target (notification, C_("updates", "Review"), "app.set-mode", "s", "updated");
+		g_notification_set_default_action_and_target (notification, "app.set-mode", "s", "updated");
+	}
 	g_application_send_notification (monitor->application, "offline-updates", notification);
 
 	/* update the timestamp so we don't show again */
