@@ -257,6 +257,12 @@ gs_shell_search_get_app_sort_key (GsApp *app)
 	/* sort installed, removing, other */
 	key = g_string_sized_new (64);
 
+	/* sort snaps before other apps */
+	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") == 0)
+		g_string_append (key, "9:");
+	else
+		g_string_append (key, "1:");
+
 	/* sort missing codecs before applications */
 	switch (gs_app_get_state (app)) {
 	case AS_APP_STATE_UNAVAILABLE:
