@@ -29,6 +29,7 @@ plugin_LTLIBRARIES =					\
 	libgs_plugin_appstream.la			\
 	libgs_plugin_dummy.la				\
 	libgs_plugin_hardcoded-featured.la		\
+	libgs_plugin_dpkg.la				\
 	libgs_plugin_hardcoded-blacklist.la		\
 	libgs_plugin_moduleset.la			\
 	libgs_plugin_menu-spec-categories.la		\
@@ -76,6 +77,11 @@ libgs_plugin_dummy_la_SOURCES = gs-plugin-dummy.c
 libgs_plugin_dummy_la_LIBADD = $(GS_PLUGIN_LIBS)
 libgs_plugin_dummy_la_LDFLAGS = -module -avoid-version
 libgs_plugin_dummy_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS)
+
+libgs_plugin_dpkg_la_SOURCES = gs-plugin-dpkg.c
+libgs_plugin_dpkg_la_LIBADD = $(GS_PLUGIN_LIBS)
+libgs_plugin_dpkg_la_LDFLAGS = -module -avoid-version
+libgs_plugin_dpkg_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS)
 
 libgs_plugin_fedora_distro_upgrades_la_SOURCES = gs-plugin-fedora-distro-upgrades.c
 libgs_plugin_fedora_distro_upgrades_la_LIBADD = $(GS_PLUGIN_LIBS) $(JSON_GLIB_LIBS) $(SOUP_LIBS)

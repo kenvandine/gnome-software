@@ -50,6 +50,17 @@ gs_plugin_get_name (void)
 }
 
 /**
+ * gs_plugin_get_conflicts:
+ */
+const gchar **
+gs_plugin_get_conflicts (GsPlugin *plugin)
+{
+	static const gchar *deps[] = {
+		NULL };
+	return deps;
+}
+
+/**
  * gs_plugin_initialize:
  */
 void
