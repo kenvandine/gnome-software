@@ -284,10 +284,10 @@ gs_plugin_app_install (GsPlugin *plugin,
 }
 
 /**
- * gs_plugin_app_update:
+ * gs_plugin_update_app:
  */
 gboolean
-gs_plugin_app_update (GsPlugin *plugin,
+gs_plugin_update_app (GsPlugin *plugin,
 		      GsApp *app,
 		      GCancellable *cancellable,
 		      GError **error)
@@ -521,10 +521,10 @@ gs_plugin_app_upgrade_trigger (GsPlugin *plugin, GsApp *app,
 }
 
 /**
- * gs_plugin_offline_update_cancel:
+ * gs_plugin_update_cancel:
  */
 gboolean
-gs_plugin_offline_update_cancel (GsPlugin *plugin, GsApp *app,
+gs_plugin_update_cancel (GsPlugin *plugin, GsApp *app,
 			 GCancellable *cancellable, GError **error)
 {
 	return TRUE;

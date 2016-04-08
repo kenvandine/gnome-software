@@ -962,17 +962,17 @@ gs_shell_updates_reboot_failed_cb (GObject *source, GAsyncResult *res, gpointer 
 	apps = gs_update_list_get_apps (GS_UPDATE_LIST (self->list_box_updates));
 	gs_plugin_loader_app_action_async (self->plugin_loader,
 					   GS_APP (apps->data),
-					   GS_PLUGIN_LOADER_ACTION_OFFLINE_UPDATE_CANCEL,
+					   GS_PLUGIN_LOADER_ACTION_UPDATE_CANCEL,
 					   self->cancellable,
 					   cancel_trigger_failed_cb,
 					   self);
 }
 
 /**
- * gs_shell_updates_offline_update_cb:
+ * gs_shell_updates_perform_update_cb:
  **/
 static void
-gs_shell_updates_offline_update_cb (GsPluginLoader *plugin_loader,
+gs_shell_updates_perform_update_cb (GsPluginLoader *plugin_loader,
                                     GAsyncResult *res,
                                     GsShellUpdates *self)
 {
@@ -981,8 +981,8 @@ gs_shell_updates_offline_update_cb (GsPluginLoader *plugin_loader,
 	gtk_widget_set_sensitive (GTK_WIDGET (self->button_update_all), TRUE);
 
 	/* get the results */
-	if (!gs_plugin_loader_offline_update_finish (plugin_loader, res, &error)) {
-		g_warning ("Failed to trigger offline update: %s", error->message);
+	if (!gs_plugin_loader_update_finish (plugin_loader, res, &error)) {
+		g_warning ("Failed to perform update: %s", error->message);
 		return;
 	}
 
@@ -1030,11 +1030,11 @@ gs_shell_updates_button_update_all_cb (GtkButton      *button,
 
 	/* do the offline update */
 	apps = gs_update_list_get_apps (GS_UPDATE_LIST (self->list_box_updates));
-	gs_plugin_loader_offline_update_async (self->plugin_loader,
-	                                       apps,
-	                                       self->cancellable,
-	                                       (GAsyncReadyCallback) gs_shell_updates_offline_update_cb,
-	                                       self);
+	gs_plugin_loader_update_async (self->plugin_loader,
+				       apps,
+				       self->cancellable,
+				       (GAsyncReadyCallback) gs_shell_updates_perform_update_cb,
+				       self);
 }
 
 typedef struct {
@@ -1140,7 +1140,7 @@ upgrade_reboot_failed_cb (GObject *source,
 	/* cancel trigger */
 	gs_plugin_loader_app_action_async (self->plugin_loader,
 					   app,
-					   GS_PLUGIN_LOADER_ACTION_OFFLINE_UPDATE_CANCEL,
+					   GS_PLUGIN_LOADER_ACTION_UPDATE_CANCEL,
 					   self->cancellable,
 					   cancel_trigger_failed_cb,
 					   self);
@@ -1156,7 +1156,7 @@ upgrade_trigger_finished_cb (GObject *source,
 	g_autoptr(GError) error = NULL;
 
 	/* get the results */
-	if (!gs_plugin_loader_offline_update_finish (self->plugin_loader, res, &error)) {
+	if (!gs_plugin_loader_update_finish (self->plugin_loader, res, &error)) {
 		g_warning ("Failed to trigger offline update: %s", error->message);
 		return;
 	}

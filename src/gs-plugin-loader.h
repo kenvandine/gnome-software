@@ -61,7 +61,7 @@ typedef enum {
 	GS_PLUGIN_LOADER_ACTION_UPGRADE_DOWNLOAD,
 	GS_PLUGIN_LOADER_ACTION_UPGRADE_TRIGGER,
 	GS_PLUGIN_LOADER_ACTION_LAUNCH,
-	GS_PLUGIN_LOADER_ACTION_OFFLINE_UPDATE_CANCEL,
+	GS_PLUGIN_LOADER_ACTION_UPDATE_CANCEL,
 	GS_PLUGIN_LOADER_ACTION_LAST
 } GsPluginLoaderAction;
 
@@ -190,12 +190,12 @@ void		 gs_plugin_loader_url_to_app_async	(GsPluginLoader	*plugin_loader,
 GsApp		*gs_plugin_loader_url_to_app_finish	(GsPluginLoader	*plugin_loader,
 							 GAsyncResult	*res,
 							 GError		**error);
-void		 gs_plugin_loader_offline_update_async	(GsPluginLoader	*plugin_loader,
+void		 gs_plugin_loader_update_async		(GsPluginLoader	*plugin_loader,
 							 GList		*apps,
 							 GCancellable	*cancellable,
 							 GAsyncReadyCallback callback,
 							 gpointer	 user_data);
-gboolean	 gs_plugin_loader_offline_update_finish	(GsPluginLoader	*plugin_loader,
+gboolean	 gs_plugin_loader_update_finish		(GsPluginLoader	*plugin_loader,
 							 GAsyncResult	*res,
 							 GError		**error);
 gboolean	 gs_plugin_loader_setup			(GsPluginLoader	*plugin_loader,

@@ -166,13 +166,13 @@ gs_plugin_systemd_updates_requires_trigger (GsApp *app)
 }
 
 /**
- * gs_plugin_offline_update:
+ * gs_plugin_update:
  */
 gboolean
-gs_plugin_offline_update (GsPlugin *plugin,
-                          GList *apps,
-                          GCancellable *cancellable,
-                          GError **error)
+gs_plugin_update (GsPlugin *plugin,
+		  GList *apps,
+		  GCancellable *cancellable,
+		  GError **error)
 {
 	GList *l;
 
@@ -188,13 +188,13 @@ gs_plugin_offline_update (GsPlugin *plugin,
 }
 
 /**
- * gs_plugin_offline_update_cancel:
+ * gs_plugin_update_cancel:
  */
 gboolean
-gs_plugin_offline_update_cancel (GsPlugin *plugin,
-				 GsApp *app,
-				 GCancellable *cancellable,
-				 GError **error)
+gs_plugin_update_cancel (GsPlugin *plugin,
+			 GsApp *app,
+			 GCancellable *cancellable,
+			 GError **error)
 {
 	/* only process this app if was created by this plugin */
 	if (g_strcmp0 (gs_app_get_management_plugin (app), "packagekit") != 0)
