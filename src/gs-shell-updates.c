@@ -68,6 +68,7 @@ struct _GsShellUpdates
 	GSettings		*desktop_settings;
 	gboolean		 cache_valid;
 	guint			 in_flight;
+	gboolean		 in_progress;
 	gboolean		 all_updates_are_live;
 	gboolean		 any_require_reboot;
 	GsShell			*shell;
@@ -482,9 +483,27 @@ gs_shell_updates_get_updates_cb (GsPluginLoader *plugin_loader,
 
 	/* get the results */
 	list = gs_plugin_loader_get_updates_finish (plugin_loader, res, &error);
+	self->all_updates_are_live = TRUE;
+	self->any_require_reboot = FALSE;
 	for (l = list; l != NULL; l = l->next) {
-		gs_update_list_add_app (GS_UPDATE_LIST (self->list_box_updates),
-					GS_APP (l->data));
+		GsApp *app = GS_APP (l->data);
+		if (gs_app_get_state (app) != AS_APP_STATE_UPDATABLE_LIVE)
+			self->all_updates_are_live = FALSE;
+		if (gs_app_has_quirk (app, AS_APP_QUIRK_NEEDS_REBOOT))
+			self->any_require_reboot = TRUE;
+		gs_update_list_add_app (GS_UPDATE_LIST (self->list_box_updates), app);
+	}
+
+	/* change the button as to whether a reboot is required to
+	 * apply all the updates */
+	if (self->all_updates_are_live) {
+		gtk_button_set_label (GTK_BUTTON (self->button_update_all),
+				      /* TRANSLATORS: all updates will be installed */
+				      _("_Install All"));
+	} else {
+		gtk_button_set_label (GTK_BUTTON (self->button_update_all),
+				      /* TRANSLATORS: this is an offline update */
+				      _("Restart & _Install"));
 	}
 
 	widget = GTK_WIDGET (gtk_builder_get_object (self->builder, "button_updates_counter"));
@@ -957,7 +976,6 @@ gs_shell_updates_offline_update_cb (GsPluginLoader *plugin_loader,
                                     GAsyncResult *res,
                                     GsShellUpdates *self)
 {
-	g_autoptr(GDBusConnection) bus = NULL;
 	g_autoptr(GError) error = NULL;
 
 	gtk_widget_set_sensitive (GTK_WIDGET (self->button_update_all), TRUE);
@@ -968,17 +986,35 @@ gs_shell_updates_offline_update_cb (GsPluginLoader *plugin_loader,
 		return;
 	}
 
-	/* trigger reboot */
-	bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
-	g_dbus_connection_call (bus,
-				"org.gnome.SessionManager",
-				"/org/gnome/SessionManager",
-				"org.gnome.SessionManager",
-				"Reboot",
-				NULL, NULL, G_DBUS_CALL_FLAGS_NONE,
-				G_MAXINT, NULL,
-				gs_shell_updates_reboot_failed_cb,
-				self);
+	/* trigger reboot if any application was not updatable live */
+	if (!self->all_updates_are_live) {
+		g_autoptr(GDBusConnection) bus = NULL;
+		bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+		g_dbus_connection_call (bus,
+					"org.gnome.SessionManager",
+					"/org/gnome/SessionManager",
+					"org.gnome.SessionManager",
+					"Reboot",
+					NULL, NULL, G_DBUS_CALL_FLAGS_NONE,
+					G_MAXINT, NULL,
+					gs_shell_updates_reboot_failed_cb,
+					self);
+
+	/* when we are not doing an offline update, show a notification
+	 * if any application requires a reboot */
+	} else if (self->any_require_reboot) {
+		g_autoptr(GNotification) n = NULL;
+		/* TRANSLATORS: we've just live-updated some apps */
+		n = g_notification_new (_("Updates have been installed"));
+		/* TRANSLATORS: the new apps will not be run until we restart */
+		g_notification_set_body (n, _("A restart is required for them to take effect."));
+		/* TRANSLATORS: button text */
+		g_notification_add_button (n, _("Not Now"), "app.nop");
+		/* TRANSLATORS: button text */
+		g_notification_add_button_with_target (n, _("Restart"), "app.reboot", NULL);
+		g_notification_set_default_action_and_target (n, "app.set-mode", "s", "updates");
+		g_application_send_notification (g_application_get_default (), "restart-required", n);
+	}
 }
 
 static void
