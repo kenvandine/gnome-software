@@ -487,7 +487,7 @@ gs_shell_updates_get_updates_cb (GsPluginLoader *plugin_loader,
 	self->any_require_reboot = FALSE;
 	for (l = list; l != NULL; l = l->next) {
 		GsApp *app = GS_APP (l->data);
-		if (gs_app_get_state (app) != AS_APP_STATE_UPDATABLE_LIVE)
+		if (gs_app_get_state (app) == AS_APP_STATE_UPDATABLE)
 			self->all_updates_are_live = FALSE;
 		if (gs_app_has_quirk (app, AS_APP_QUIRK_NEEDS_REBOOT))
 			self->any_require_reboot = TRUE;
