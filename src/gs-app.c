@@ -254,6 +254,8 @@ gs_app_to_string (GsApp *app)
 		gs_app_kv_lpad (str, "summary", app->summary);
 	if (app->description != NULL)
 		gs_app_kv_lpad (str, "description", app->description);
+	gs_app_kv_lpad (str, "provenance",
+			gs_app_has_quirk (app, AS_APP_QUIRK_PROVENANCE) ? "yes" : "no");
 	for (i = 0; i < app->screenshots->len; i++) {
 		g_autofree gchar *key = NULL;
 		ss = g_ptr_array_index (app->screenshots, i);
@@ -287,6 +289,8 @@ gs_app_to_string (GsApp *app)
 		gs_app_kv_lpad (str, "url{homepage}", tmp);
 	if (app->license != NULL)
 		gs_app_kv_lpad (str, "license", app->license);
+	gs_app_kv_lpad (str, "open source",
+			gs_app_get_license_is_free (app) ? "yes" : "no");
 	if (app->management_plugin != NULL)
 		gs_app_kv_lpad (str, "management-plugin", app->management_plugin);
 	if (app->summary_missing != NULL)
