@@ -498,6 +498,8 @@ gs_app_set_state_internal (GsApp *app, AsAppState state)
 	case AS_APP_STATE_INSTALLED:
 		/* installed has to go into an action state */
 		if (state == AS_APP_STATE_UNKNOWN ||
+		    state == AS_APP_STATE_UPDATABLE ||
+		    state == AS_APP_STATE_UPDATABLE_LIVE ||
 		    state == AS_APP_STATE_REMOVING)
 			state_change_ok = TRUE;
 		break;
