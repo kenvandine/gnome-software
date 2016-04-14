@@ -286,7 +286,7 @@ BUILT_SOURCES =						\
 	gs-resources.h
 
 TESTS_ENVIRONMENT =						\
-	libtool --mode=execute valgrind				\
+	$(top_builddir)/libtool --mode=execute valgrind		\
 	--quiet							\
 	--leak-check=full					\
 	--show-possibly-lost=no
