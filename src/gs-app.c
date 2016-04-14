@@ -1554,8 +1554,11 @@ void
 gs_app_set_origin (GsApp *app, const gchar *origin)
 {
 	g_return_if_fail (GS_IS_APP (app));
-	g_free (app->origin);
-	app->origin = g_strdup (origin);
+
+	if (origin != app->origin) {
+		g_free (app->origin);
+		app->origin = g_strdup (origin);
+	}
 }
 
 /**
