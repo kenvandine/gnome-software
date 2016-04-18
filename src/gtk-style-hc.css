@@ -116,6 +116,12 @@
 	background-image: linear-gradient(to top, @theme_selected_bg_color 2px, alpha(@theme_selected_bg_color, 0) 2px);
 	background-repeat: no-repeat;
 	background-position: 0 bottom;
+	border: 1px solid;
+	border-radius: 3px;
+	border-image-source: none;
+	border-image-width: 1;
+	border-image-slice: 100%;
+	border-image-repeat: stretch;
 	transition: none;
 }
 
