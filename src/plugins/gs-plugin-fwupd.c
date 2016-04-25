@@ -278,6 +278,7 @@ gs_plugin_add_update_app (GsPlugin *plugin,
 	g_autofree gchar *update_hash = NULL;
 	g_autofree gchar *update_uri = NULL;
 	g_autoptr(AsIcon) icon = NULL;
+	g_autoptr(GFile) file = NULL;
 	g_autoptr(GsApp) app = NULL;
 
 	app = gs_app_new (NULL);
@@ -388,6 +389,8 @@ gs_plugin_add_update_app (GsPlugin *plugin,
 	gs_app_add_category (app, "System");
 	gs_app_set_kind (app, AS_APP_KIND_FIRMWARE);
 	gs_app_set_metadata (app, "fwupd::DeviceID", id);
+	file = g_file_new_for_path (filename_cache);
+	gs_app_set_local_file (app, file);
 	gs_plugin_add_app (list, app);
 
 	/* create icon */
@@ -905,15 +908,15 @@ gs_plugin_fwupd_install (GsPlugin *plugin,
 			 GError **error)
 {
 	const gchar *install_method;
-	const gchar *filename;
+	g_autofree gchar *filename = NULL;
 	gboolean offline = FALSE;
 
 	/* only process this app if was created by this plugin */
 	if (g_strcmp0 (gs_app_get_management_plugin (app), plugin->name) != 0)
 		return TRUE;
 
-	filename = gs_app_get_source_id_default (app);
-	if (filename == NULL) {
+	/* not set */
+	if (gs_app_get_local_file (app) == NULL) {
 		g_set_error (error,
 			     GS_PLUGIN_ERROR,
 			     GS_PLUGIN_ERROR_FAILED,
@@ -921,6 +924,7 @@ gs_plugin_fwupd_install (GsPlugin *plugin,
 			     filename);
 		return FALSE;
 	}
+	filename = g_file_get_path (gs_app_get_local_file (app));
 
 	/* only offline supported */
 	install_method = gs_app_get_metadata_item (app, "fwupd::InstallMethod");

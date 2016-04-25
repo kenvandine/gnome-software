@@ -3835,6 +3835,7 @@ gs_plugin_loader_filename_to_app_thread_cb (GTask *task,
 	const gchar *function_name = "gs_plugin_filename_to_app";
 	gboolean ret = TRUE;
 	GError *error = NULL;
+	GList *l;
 	GsPluginLoaderAsyncState *state = (GsPluginLoaderAsyncState *) task_data;
 	GsPlugin *plugin;
 	GsPluginFilenameToAppFunc plugin_func = NULL;
@@ -3870,6 +3871,13 @@ gs_plugin_loader_filename_to_app_thread_cb (GTask *task,
 			continue;
 		}
 		gs_plugin_status_update (plugin, NULL, GS_PLUGIN_STATUS_FINISHED);
+	}
+
+	/* set the local file on any of the returned results */
+	for (l = state->list; l != NULL; l = l->next) {
+		GsApp *app = GS_APP (l->data);
+		if (gs_app_get_local_file (app) == NULL)
+			gs_app_set_local_file (app, state->file);
 	}
 
 	/* run refine() on each one */
@@ -3917,6 +3925,9 @@ gs_plugin_loader_filename_to_app_thread_cb (GTask *task,
  * Once the list of updates is refined, some of the #GsApp's of kind
  * %AS_APP_KIND_GENERIC will have been promoted to a kind of %AS_APP_KIND_DESKTOP,
  * or if they are core applications.
+ *
+ * Files that are supported will have the GFile used to create them available
+ * from the gs_app_get_local_file() method.
  **/
 void
 gs_plugin_loader_filename_to_app_async (GsPluginLoader *plugin_loader,
