@@ -1367,21 +1367,20 @@ gs_plugin_app_update (GsPlugin *plugin,
 }
 
 /**
- * gs_plugin_filename_to_app:
+ * gs_plugin_file_to_app:
  */
 gboolean
-gs_plugin_filename_to_app (GsPlugin *plugin,
-			   GList **list,
-			   const gchar *filename,
-			   GCancellable *cancellable,
-			   GError **error)
+gs_plugin_file_to_app (GsPlugin *plugin,
+		       GList **list,
+		       GFile *file,
+		       GCancellable *cancellable,
+		       GError **error)
 {
 	g_autofree gchar *content_type = NULL;
 	g_autofree gchar *id_prefixed = NULL;
 	g_autoptr(GBytes) appstream_gz = NULL;
 	g_autoptr(GBytes) icon_data = NULL;
 	g_autoptr(GBytes) metadata = NULL;
-	g_autoptr(GFile) file = NULL;
 	g_autoptr(GsApp) app = NULL;
 	g_autoptr(XdgAppBundleRef) xref_bundle = NULL;
 	const gchar *mimetypes[] = {
@@ -1389,14 +1388,13 @@ gs_plugin_filename_to_app (GsPlugin *plugin,
 		NULL };
 
 	/* does this match any of the mimetypes we support */
-	content_type = gs_utils_get_content_type (filename, cancellable, error);
+	content_type = gs_utils_get_content_type (file, cancellable, error);
 	if (content_type == NULL)
 		return FALSE;
 	if (!g_strv_contains (mimetypes, content_type))
 		return TRUE;
 
 	/* load bundle */
-	file = g_file_new_for_path (filename);
 	xref_bundle = xdg_app_bundle_ref_new (file, error);
 	if (xref_bundle == NULL) {
 		g_prefix_error (error, "error loading bundle: ");
