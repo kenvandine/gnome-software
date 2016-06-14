@@ -81,8 +81,10 @@ if HAVE_LIMBA
 plugin_LTLIBRARIES += libgs_plugin_limba.la
 endif
 
+if HAVE_XDG_APP
 if HAVE_ODRS
 plugin_LTLIBRARIES += libgs_plugin_odrs.la
+endif
 endif
 
 libgs_plugin_dummy_la_SOURCES = gs-plugin-dummy.c
