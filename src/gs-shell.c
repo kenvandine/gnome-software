@@ -292,8 +292,13 @@ gs_shell_change_mode (GsShell *shell,
 		new_page = GS_PAGE (priv->shell_updates);
 		break;
 	case GS_SHELL_MODE_DETAILS:
-		if (app != NULL)
-			gs_shell_details_set_app (priv->shell_details, app);
+		if (app != NULL) {
+			if (gs_app_get_metadata_item (app, "GnomeSoftware::from-url") != NULL)
+				gs_shell_details_set_url (priv->shell_details,
+				                          gs_app_get_metadata_item (app, "GnomeSoftware::from-url"));
+			else
+				gs_shell_details_set_app (priv->shell_details, app);
+		}
 		if (data != NULL)
 			gs_shell_details_set_filename (priv->shell_details, data);
 		new_page = GS_PAGE (priv->shell_details);

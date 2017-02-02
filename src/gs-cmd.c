@@ -339,6 +339,17 @@ main (int argc, char **argv)
 		} else {
 			gs_plugin_add_app (&list, app);
 		}
+	} else if (argc == 3 && g_strcmp0 (argv[1], "url-to-app") == 0) {
+		app = gs_plugin_loader_url_to_app (plugin_loader,
+						   argv[2],
+						   refine_flags,
+						   NULL,
+						   &error);
+		if (app == NULL) {
+			ret = FALSE;
+		} else {
+			gs_plugin_add_app (&list, app);
+		}
 	} else if (argc == 2 && g_strcmp0 (argv[1], "updates") == 0) {
 		for (i = 0; i < repeat; i++) {
 			if (list != NULL)

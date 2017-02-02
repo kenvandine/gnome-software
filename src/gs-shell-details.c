@@ -1320,6 +1320,24 @@ gs_shell_details_set_filename (GsShellDetails *self, const gchar *filename)
 }
 
 /**
+ * gs_shell_details_set_url:
+ **/
+void
+gs_shell_details_set_url (GsShellDetails *self, const gchar *url)
+{
+	gs_shell_details_set_state (self, GS_SHELL_DETAILS_STATE_LOADING);
+	gs_plugin_loader_url_to_app_async (self->plugin_loader,
+					   url,
+					   GS_PLUGIN_REFINE_FLAGS_DEFAULT |
+					   GS_PLUGIN_REFINE_FLAGS_REQUIRE_RATING |
+					   GS_PLUGIN_REFINE_FLAGS_REQUIRE_REVIEW_RATINGS |
+					   GS_PLUGIN_REFINE_FLAGS_REQUIRE_REVIEWS,
+					   self->cancellable,
+					   gs_shell_details_file_to_app_cb,
+					   self);
+}
+
+/**
  * gs_shell_details_load:
  **/
 static void

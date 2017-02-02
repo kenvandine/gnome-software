@@ -603,6 +603,26 @@ details_activated (GSimpleAction *action,
 }
 
 static void
+details_url_activated (GSimpleAction *action,
+		       GVariant      *parameter,
+		       gpointer       data)
+{
+	GsApplication *app = GS_APPLICATION (data);
+	const gchar *url;
+	g_autoptr (GsApp) a = NULL;
+
+	initialize_ui_and_present_window (app);
+
+	g_variant_get (parameter, "(&s)", &url);
+
+	/* this is only used as a wrapper to transport the URL to
+	 * the gs_shell_change_mode() function -- not in the GsAppList */
+	a = gs_app_new (NULL);
+	gs_app_set_metadata (a, "GnomeSoftware::from-url", url);
+	gs_shell_show_app (app->shell, a);
+}
+
+static void
 filename_activated (GSimpleAction *action,
 		    GVariant      *parameter,
 		    gpointer       data)
@@ -694,6 +714,8 @@ static GActionEntry actions[] = {
 	{ "set-mode", set_mode_activated, "s", NULL, NULL },
 	{ "search", search_activated, "s", NULL, NULL },
 	{ "details", details_activated, "(ss)", NULL, NULL },
+	{ "details-pkg", details_pkg_activated, "s", NULL, NULL },
+	{ "details-url", details_url_activated, "(s)", NULL, NULL },
 	{ "filename", filename_activated, "(s)", NULL, NULL },
 	{ "launch", launch_activated, "s", NULL, NULL },
 	{ "show-offline-update-error", show_offline_updates_error, NULL, NULL, NULL },
@@ -826,29 +848,9 @@ gs_application_open (GApplication  *application,
 
 	for (i = 0; i < n_files; i++) {
 		g_autofree gchar *str = g_file_get_uri (files[i]);
-		g_autoptr(SoupURI) uri = NULL;
-
-		uri = soup_uri_new (str);
-		if (!SOUP_URI_IS_VALID (uri))
-			continue;
-
-		if (g_strcmp0 (soup_uri_get_scheme (uri), "appstream") == 0) {
-			const gchar *host = soup_uri_get_host (uri);
-			const gchar *path = soup_uri_get_path (uri);
-
-			/* appstream://foo -> scheme: appstream, host: foo, path: / */
-			/* appstream:foo -> scheme: appstream, host: (empty string), path: /foo */
-			if (host != NULL && (strlen (host) > 0))
-				path = host;
-
-			/* trim any leading slashes */
-			while (*path == '/')
-				path++;
-
-			g_action_group_activate_action (G_ACTION_GROUP (app),
-			                                "details",
-			                                g_variant_new ("(ss)", path, ""));
-		}
+		g_action_group_activate_action (G_ACTION_GROUP (app),
+						"details-url",
+						g_variant_new ("(s)", str));
 	}
 }
 

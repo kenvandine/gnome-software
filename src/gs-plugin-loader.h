@@ -181,6 +181,15 @@ void		 gs_plugin_loader_filename_to_app_async	(GsPluginLoader	*plugin_loader,
 GsApp		*gs_plugin_loader_filename_to_app_finish(GsPluginLoader	*plugin_loader,
 							 GAsyncResult	*res,
 							 GError		**error);
+void		 gs_plugin_loader_url_to_app_async	(GsPluginLoader	*plugin_loader,
+							 const gchar	*url,
+							 GsPluginRefineFlags refine_flags,
+							 GCancellable	*cancellable,
+							 GAsyncReadyCallback callback,
+							 gpointer	 user_data);
+GsApp		*gs_plugin_loader_url_to_app_finish	(GsPluginLoader	*plugin_loader,
+							 GAsyncResult	*res,
+							 GError		**error);
 void		 gs_plugin_loader_offline_update_async	(GsPluginLoader	*plugin_loader,
 							 GList		*apps,
 							 GCancellable	*cancellable,

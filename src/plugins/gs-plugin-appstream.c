@@ -242,6 +242,41 @@ gs_plugin_setup (GsPlugin *plugin, GCancellable *cancellable, GError **error)
 }
 
 /**
+ * gs_plugin_url_to_app:
+ */
+gboolean
+gs_plugin_url_to_app (GsPlugin *plugin,
+		      GList **list,
+		      const gchar *url,
+		      GCancellable *cancellable,
+		      GError **error)
+{
+	AsApp *item;
+	g_autofree gchar *path = NULL;
+	g_autofree gchar *scheme = NULL;
+	g_autoptr(GsApp) app = NULL;
+
+	/* not us */
+	scheme = gs_utils_get_url_scheme (url);
+	if (g_strcmp0 (scheme, "appstream") != 0 && g_strcmp0 (scheme, "apt") != 0)
+		return TRUE;
+
+	/* create app */
+	path = gs_utils_get_url_path (url);
+	if (g_strcmp0 (scheme, "appstream") == 0)
+		item = as_store_get_app_by_id (plugin->priv->store, path);
+	else
+		item = as_store_get_app_by_pkgname (plugin->priv->store, path);
+	if (item == NULL)
+		return TRUE;
+	app = gs_app_new (as_app_get_id (item));
+	if (!gs_appstream_refine_app (plugin, app, item, error))
+		return FALSE;
+	gs_plugin_add_app (list, app);
+	return TRUE;
+}
+
+/**
  * gs_plugin_refine_from_id:
  */
 static gboolean
