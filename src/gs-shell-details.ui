@@ -1008,7 +1008,7 @@
                             <property name="spacing">12</property>
                             <child>
                               <object class="GtkLabel" id="label_details_tag_nonfree">
-                                <property name="visible">True</property>
+                                <property name="visible">False</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">non-free</property>
                                 <style>
@@ -1023,7 +1023,7 @@
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_details_tag_3rdparty">
-                                <property name="visible">True</property>
+                                <property name="visible">False</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">3rd party</property>
                                  <style>
