@@ -61,6 +61,7 @@ struct _GsApp
 	GPtrArray		*sources;
 	GPtrArray		*source_ids;
 	gchar			*project_group;
+	gchar			*developer_name;
 	gchar			*version;
 	gchar			*version_ui;
 	gchar			*summary;
@@ -881,6 +882,40 @@ gs_app_set_project_group (GsApp *app, const gchar *project_group)
 	g_return_if_fail (GS_IS_APP (app));
 	g_free (app->project_group);
 	app->project_group = g_strdup (project_group);
+}
+
+/**
+ * gs_app_get_developer_name:
+ * @app: a #GsApp
+ *
+ * Gets the developer name for the application.
+ *
+ * Returns: a string, or %NULL for unset
+ *
+ * Since: 3.22
+ **/
+const gchar *
+gs_app_get_developer_name (GsApp *app)
+{
+	g_return_val_if_fail (GS_IS_APP (app), NULL);
+	return app->developer_name;
+}
+
+/**
+ * gs_app_set_developer_name:
+ * @app: a #GsApp
+ * @developer_name: The developer name, e.g. "Richard Hughes"
+ *
+ * Sets a developer name for the application.
+ *
+ * Since: 3.22
+ **/
+void
+gs_app_set_developer_name (GsApp *app, const gchar *developer_name)
+{
+	g_return_if_fail (GS_IS_APP (app));
+	g_free (app->developer_name);
+	app->developer_name = g_strdup (developer_name);
 }
 
 /**
@@ -2366,6 +2401,7 @@ gs_app_finalize (GObject *object)
 	g_ptr_array_unref (app->sources);
 	g_ptr_array_unref (app->source_ids);
 	g_free (app->project_group);
+	g_free (app->developer_name);
 	g_free (app->version);
 	g_free (app->version_ui);
 	g_free (app->summary);
