@@ -770,17 +770,7 @@ gs_shell_allow_updates_notify_cb (GsPluginLoader *plugin_loader,
 					priv->mode == GS_SHELL_MODE_UPDATES);
 }
 
-typedef enum {
-	GS_SHELL_EVENT_BUTTON_NONE		= 0,
-	GS_SHELL_EVENT_BUTTON_SOURCES		= 1 << 0,
-	GS_SHELL_EVENT_BUTTON_NO_SPACE		= 1 << 1,
-	GS_SHELL_EVENT_BUTTON_NETWORK_SETTINGS	= 1 << 2,
-	GS_SHELL_EVENT_BUTTON_MORE_INFO		= 1 << 3,
-	GS_SHELL_EVENT_BUTTON_RESTART_REQUIRED	= 1 << 4,
-	GS_SHELL_EVENT_BUTTON_LAST
-} GsShellEventButtons;
-
-static void
+void
 gs_shell_show_event_app_notify (GsShell *shell,
 				const gchar *title,
 				GsShellEventButtons buttons)
