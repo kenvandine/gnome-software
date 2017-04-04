@@ -1594,23 +1594,47 @@ set_app (GsDetailsPage *self, GsApp *app)
 	gs_details_page_app_refine2 (self);
 }
 
+typedef struct {
+	GsDetailsPage *page;
+	gchar *url;
+} GsDetailsFileHelper;
+
+static void
+gs_details_page_file_helper_free (GsDetailsFileHelper *helper)
+{
+	g_object_unref (helper->page);
+	g_free (helper->url);
+	g_free (helper);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GsDetailsFileHelper, gs_details_page_file_helper_free);
+
 static void
 gs_details_page_file_to_app_cb (GObject *source,
                                 GAsyncResult *res,
                                 gpointer user_data)
 {
 	GsPluginLoader *plugin_loader = GS_PLUGIN_LOADER (source);
-	GsDetailsPage *self = GS_DETAILS_PAGE (user_data);
+	g_autoptr(GsDetailsFileHelper) helper = user_data;
+	GsDetailsPage *self = helper->page;
 	g_autoptr(GsAppList) list = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autofree gchar *msg = NULL;
 
 	list = gs_plugin_loader_job_process_finish (plugin_loader,
 						    res,
 						    &error);
 	if (list == NULL) {
+		/* TRANSLATORS: This message is shown when opening
+		 * gnome-software with a path to an unhandled app, e.g.
+		 * /no/such/file */
+		msg = g_strdup_printf (_("Don't know how to handle ‘%s’"), helper->url);
 		g_warning ("failed to convert file to GsApp: %s", error->message);
 		/* go back to the overview */
 		gs_shell_change_mode (self->shell, GS_SHELL_MODE_OVERVIEW, NULL, FALSE);
+		gs_shell_show_event_app_notify (self->shell,
+						msg,
+						GS_SHELL_EVENT_BUTTON_NONE);
 	} else {
 		GsApp *app = gs_app_list_index (list, 0);
 		set_app (self, app);
@@ -1623,17 +1647,23 @@ gs_details_page_url_to_app_cb (GObject *source,
                                gpointer user_data)
 {
 	GsPluginLoader *plugin_loader = GS_PLUGIN_LOADER (source);
-	GsDetailsPage *self = GS_DETAILS_PAGE (user_data);
+	g_autoptr(GsDetailsFileHelper) helper = user_data;
+	GsDetailsPage *self = helper->page;
 	g_autoptr(GsAppList) list = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autofree gchar *msg = NULL;
 
 	list = gs_plugin_loader_job_process_finish (plugin_loader,
 						    res,
 						    &error);
 	if (list == NULL) {
+		msg = g_strdup_printf (_("Don't know how to handle ‘%s’"), helper->url);
 		g_warning ("failed to convert URL to GsApp: %s", error->message);
 		/* go back to the overview */
 		gs_shell_change_mode (self->shell, GS_SHELL_MODE_OVERVIEW, NULL, FALSE);
+		gs_shell_show_event_app_notify (self->shell,
+						msg,
+						GS_SHELL_EVENT_BUTTON_NONE);
 	} else {
 		GsApp *app = gs_app_list_index (list, 0);
 		set_app (self, app);
@@ -1644,6 +1674,9 @@ void
 gs_details_page_set_local_file (GsDetailsPage *self, GFile *file)
 {
 	g_autoptr(GsPluginJob) plugin_job = NULL;
+	GsDetailsFileHelper *helper = g_new0 (GsDetailsFileHelper, 1);
+	helper->page = g_object_ref (self);
+	helper->url = g_file_get_uri (file);
 	gs_details_page_set_state (self, GS_DETAILS_PAGE_STATE_LOADING);
 	plugin_job = gs_plugin_job_newv (GS_PLUGIN_ACTION_FILE_TO_APP,
 					 "file", file,
@@ -1666,13 +1699,16 @@ gs_details_page_set_local_file (GsDetailsPage *self, GFile *file)
 	gs_plugin_loader_job_process_async (self->plugin_loader, plugin_job,
 					    self->cancellable,
 					    gs_details_page_file_to_app_cb,
-					    self);
+					    helper);
 }
 
 void
 gs_details_page_set_url (GsDetailsPage *self, const gchar *url)
 {
 	g_autoptr(GsPluginJob) plugin_job = NULL;
+	GsDetailsFileHelper *helper = g_new0 (GsDetailsFileHelper, 1);
+	helper->page = g_object_ref (self);
+	helper->url = g_strdup (url);
 	gs_details_page_set_state (self, GS_DETAILS_PAGE_STATE_LOADING);
 	plugin_job = gs_plugin_job_newv (GS_PLUGIN_ACTION_URL_TO_APP,
 					 "search", url,
@@ -1691,11 +1727,11 @@ gs_details_page_set_url (GsDetailsPage *self, const gchar *url)
 							 GS_PLUGIN_REFINE_FLAGS_REQUIRE_RUNTIME |
 							 GS_PLUGIN_REFINE_FLAGS_REQUIRE_PERMISSIONS |
 							 GS_PLUGIN_REFINE_FLAGS_REQUIRE_SCREENSHOTS,
-					 NULL);
+					 helper);
 	gs_plugin_loader_job_process_async (self->plugin_loader, plugin_job,
 					    self->cancellable,
 					    gs_details_page_url_to_app_cb,
-					    self);
+					    helper);
 }
 
 static void
