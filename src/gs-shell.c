@@ -78,6 +78,7 @@ typedef struct
 	GQueue			*back_entry_stack;
 	gboolean		 ignore_next_search_changed_signal;
 	GPtrArray		*modal_dialogs;
+	gchar			*last_search;
 } GsShellPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (GsShell, gs_shell, G_TYPE_OBJECT)
@@ -542,6 +543,15 @@ search_changed_handler (GObject *entry, GsShell *shell)
 		return;
 	}
 
+	/* ignore if search text not changed. This is a workaround since GtkEntry
+         * emits changed even when the character limit is hit
+         * https://bugzilla.gnome.org/show_bug.cgi?id=782636
+         */
+	if (g_strcmp0 (text, priv->last_search) == 0)
+		return;
+	g_free (priv->last_search);
+	priv->last_search = g_strdup (text);
+
 	if (strlen(text) > 2) {
 		if (gs_shell_get_mode (shell) != GS_SHELL_MODE_SEARCH) {
 			gs_shell_change_mode (shell, GS_SHELL_MODE_SEARCH, NULL, NULL, TRUE);
@@ -962,6 +972,7 @@ gs_shell_dispose (GObject *object)
 	g_clear_object (&priv->header_start_widget);
 	g_clear_object (&priv->header_end_widget);
 	g_clear_pointer (&priv->modal_dialogs, (GDestroyNotify) g_ptr_array_unref);
+	g_clear_pointer (&priv->last_search, g_free);
 
 	G_OBJECT_CLASS (gs_shell_parent_class)->dispose (object);
 }
