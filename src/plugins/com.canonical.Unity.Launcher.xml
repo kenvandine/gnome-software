@@ -1,0 +1,15 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name='com.canonical.Unity.Launcher'>
+    <method name='AddLauncherItem'>
+      <arg type='s' name='appstream_app_id' direction='in'/>
+      <arg type='s' name='aptdaemon_task' direction='in'/>
+    </method>
+    
+    <method name='UpdateLauncherIconFavoriteState'>
+      <arg type='s' name='icon_uri' direction='in'/>
+      <arg type='b' name='is_sticky' direction='in'/>
+    </method>
+  </interface>
+</node>
