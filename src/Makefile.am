@@ -11,6 +11,7 @@ AM_CPPFLAGS =						\
 	$(POLKIT_CFLAGS)				\
 	$(FWUPD_CFLAGS)					\
 	$(LIBSECRET_CFLAGS)				\
+	$(JSON_GLIB_CFLAGS)				\
 	-DG_LOG_DOMAIN=\"Gs\"				\
 	-DI_KNOW_THE_PACKAGEKIT_GLIB2_API_IS_SUBJECT_TO_CHANGE	\
 	-DGS_MODULESETDIR=\"$(datadir)/gnome-software/modulesets.d\" \
@@ -105,6 +106,7 @@ gnome_software_cmd_LDADD =				\
 	$(SOUP_LIBS)					\
 	$(LIBSECRET_LIBS)				\
 	$(GLIB_LIBS)					\
+	$(JSON_GLIB_LIBS)				\
 	$(GTK_LIBS)
 
 gnome_software_cmd_CFLAGS =				\
@@ -239,6 +241,7 @@ gnome_software_LDADD =					\
 	$(PACKAGEKIT_LIBS)				\
 	$(GNOME_DESKTOP_LIBS)				\
 	$(POLKIT_LIBS)					\
+	$(JSON_GLIB_LIBS)				\
 	-lm
 
 gnome_software_CFLAGS =					\

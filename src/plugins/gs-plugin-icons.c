@@ -55,6 +55,7 @@ gs_plugin_order_after (GsPlugin *plugin)
 	static const gchar *deps[] = {
 		"appstream",		/* needs remote icons downloaded */
 		"epiphany",		/* "" */
+		"snap",			/* "" */
 		NULL };
 	return deps;
 }

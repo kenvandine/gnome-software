@@ -61,5 +61,6 @@ src/gs-utils.c
 src/org.gnome.Software.desktop.in
 src/plugins/gs-ubuntuone-dialog.c
 [type: gettext/glade]src/plugins/gs-ubuntuone-dialog.ui
+src/plugins/gs-plugin-snap.c
 src/plugins/menu-spec-common.c
 [type: gettext/glade]src/gs-popular-tile.ui

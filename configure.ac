@@ -70,6 +70,7 @@ PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.51.92)
 PKG_CHECK_MODULES(GSETTINGS_DESKTOP_SCHEMAS, gsettings-desktop-schemas >= 3.11.5)
 PKG_CHECK_MODULES(LIBSECRET, libsecret-1)
 PKG_CHECK_MODULES(GNOME_DESKTOP, gnome-desktop-3.0 >= 3.17.92)
+PKG_CHECK_MODULES(OAUTH, oauth)
 AC_PATH_PROG(APPSTREAM_UTIL, [appstream-util], [unfound])
 AC_ARG_ENABLE(man,
               [AS_HELP_STRING([--enable-man],
@@ -248,6 +249,28 @@ GS_PLUGIN_API_VERSION=9
 AC_SUBST(GS_PLUGIN_API_VERSION)
 AC_DEFINE_UNQUOTED([GS_PLUGIN_API_VERSION], "$GS_PLUGIN_API_VERSION", [the plugin API version])
 
+# Snap
+AC_ARG_ENABLE(snap,
+              [AS_HELP_STRING([--enable-snap],
+                              [enable Snap support [default=auto]])],,
+              enable_snap=maybe)
+AS_IF([test "x$enable_snap" != "xno"], [
+    PKG_CHECK_MODULES(SNAP,
+                      [snapd-glib],
+                      [have_snap=yes],
+                      [have_snap=no])
+], [
+    have_snap=no
+])
+AS_IF([test "x$have_snap" = "xyes"], [
+    AC_DEFINE(HAVE_SNAP,1,[Build Snap support])
+], [
+    AS_IF([test "x$enable_snap" = "xyes"], [
+          AC_MSG_ERROR([Snap support requested but 'snapd-glib' was not found])
+    ])
+])
+AM_CONDITIONAL(HAVE_SNAP, test "$have_snap" != no)
+
 GLIB_TESTS
 
 dnl ---------------------------------------------------------------------------
@@ -294,4 +317,5 @@ echo "
         XDG-APP support:           ${have_xdg_app}
         ODRS support:              ${enable_odrs}
         Ubuntu Reviews support:    ${enable_ubuntu_reviews}
+        Snap support:              ${have_snap}
 "

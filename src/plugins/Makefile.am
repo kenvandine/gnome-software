@@ -13,6 +13,9 @@ AM_CPPFLAGS =						\
 	$(JSON_GLIB_CFLAGS)				\
 	$(LIMBA_CFLAGS)					\
 	$(XDG_APP_CFLAGS)				\
+	$(OAUTH_CFLAGS)					\
+	$(LIBSECRET_CFLAGS)				\
+	$(SNAP_CFLAGS)					\
 	-DBINDIR=\"$(bindir)\"				\
 	-DDATADIR=\"$(datadir)\"			\
 	-DGS_MODULESETDIR=\"$(datadir)/gnome-software/modulesets.d\" \
@@ -43,6 +46,10 @@ plugin_LTLIBRARIES =					\
 if HAVE_APT
 plugin_LTLIBRARIES +=					\
 	libgs_plugin_apt.la
+endif
+
+if HAVE_SNAP
+plugin_LTLIBRARIES += libgs_plugin_snap.la
 endif
 
 if HAVE_PACKAGEKIT
@@ -288,6 +295,25 @@ libgs_plugin_packagekit_proxy_la_SOURCES = gs-plugin-packagekit-proxy.c
 libgs_plugin_packagekit_proxy_la_LIBADD = $(GS_PLUGIN_LIBS)
 libgs_plugin_packagekit_proxy_la_LDFLAGS = -module -avoid-version
 libgs_plugin_packagekit_proxy_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS)
+
+if HAVE_SNAP
+libgs_plugin_snap_la_SOURCES =				\
+	gs-plugin-snap.c				\
+	gs-ubuntuone.h					\
+	gs-ubuntuone.c					\
+	gs-ubuntuone-dialog.h				\
+	gs-ubuntuone-dialog.c				\
+	gs-snapd.h					\
+	gs-snapd.c
+libgs_plugin_snap_la_LIBADD =				\
+	$(GS_PLUGIN_LIBS)				\
+	$(SNAP_LIBS)					\
+	$(SOUP_LIBS)					\
+	$(JSON_GLIB_LIBS)				\
+	$(LIBSECRET_LIBS)
+libgs_plugin_snap_la_LDFLAGS = -module -avoid-version
+libgs_plugin_snap_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS) -DUSE_SNAPD
+endif
 
 check_PROGRAMS =						\
 	gs-self-test
