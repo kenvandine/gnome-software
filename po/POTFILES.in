@@ -59,5 +59,7 @@ src/gs-upgrade-banner.c
 src/gs-utils.c
 [type: gettext/glade]src/gs-menus.ui
 src/org.gnome.Software.desktop.in
+src/plugins/gs-ubuntuone-dialog.c
+[type: gettext/glade]src/plugins/gs-ubuntuone-dialog.ui
 src/plugins/menu-spec-common.c
 [type: gettext/glade]src/gs-popular-tile.ui

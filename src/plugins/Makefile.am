@@ -170,8 +170,20 @@ libgs_plugin_hardcoded_blacklist_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS)
 
 if HAVE_UBUNTU_REVIEWS
 libgs_plugin_ubuntu_reviews_la_SOURCES =		\
-	gs-plugin-ubuntu-reviews.c
-libgs_plugin_ubuntu_reviews_la_LIBADD = $(GS_PLUGIN_LIBS) $(SOUP_LIBS) $(JSON_GLIB_LIBS) $(SQLITE_LIBS)
+	gs-plugin-ubuntu-reviews.c			\
+	gs-ubuntuone.h					\
+	gs-ubuntuone.c					\
+	gs-ubuntuone-dialog.h				\
+	gs-ubuntuone-dialog.c				\
+	gs-snapd.h					\
+	gs-snapd.c
+libgs_plugin_ubuntu_reviews_la_LIBADD =			\
+	$(GS_PLUGIN_LIBS)				\
+	$(SOUP_LIBS)					\
+	$(JSON_GLIB_LIBS)				\
+	$(OAUTH_LIBS)					\
+	$(SQLITE_LIBS)					\
+	$(LIBSECRET_LIBS)
 libgs_plugin_ubuntu_reviews_la_LDFLAGS = -module -avoid-version
 libgs_plugin_ubuntu_reviews_la_CFLAGS = $(GS_PLUGIN_CFLAGS) $(WARN_CFLAGS)
 endif
@@ -261,6 +273,6 @@ gs_self_test_CFLAGS = $(WARN_CFLAGS)
 
 TESTS = gs-self-test
 
-EXTRA_DIST = moduleset-test.xml
+EXTRA_DIST = moduleset-test.xml gs-ubuntuone-dialog.h gs-ubuntuone-dialog.ui ubuntu-one.png
 
 -include $(top_srcdir)/git.mk
