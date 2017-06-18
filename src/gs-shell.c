@@ -245,8 +245,12 @@ gs_shell_change_mode (GsShell *shell,
 	context = gtk_widget_get_style_context (GTK_WIDGET (gtk_builder_get_object (priv->builder, "header")));
 	gtk_style_context_remove_class (context, "selection-mode");
 	/* set the window title back to default */
-	/* TRANSLATORS: this is the main window title */
-	gtk_window_set_title (priv->main_window, _("Software"));
+	if (gs_utils_is_current_desktop ("Unity"))
+		/* TRANSLATORS: this is the main window title */
+		gtk_window_set_title (priv->main_window, _("Ubuntu Software"));
+	else
+		/* TRANSLATORS: this is the main window title */
+		gtk_window_set_title (priv->main_window, _("Software"));
 
 	/* show the back button if needed */
 	widget = GTK_WIDGET (gtk_builder_get_object (priv->builder, "button_back"));

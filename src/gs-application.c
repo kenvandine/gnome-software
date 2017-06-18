@@ -374,8 +374,12 @@ about_activated (GSimpleAction *action,
 	/* TRANSLATORS: this is the title of the about window */
 	gtk_window_set_title (GTK_WINDOW (dialog), _("About Software"));
 
-	/* TRANSLATORS: this is the application name */
-	gtk_about_dialog_set_program_name (dialog, _("Software"));
+	if (gs_utils_is_current_desktop ("Unity"))
+		/* TRANSLATORS: this is the application name */
+		gtk_about_dialog_set_program_name (dialog, _("Ubuntu Software"));
+	else
+		/* TRANSLATORS: this is the application name */
+		gtk_about_dialog_set_program_name (dialog, _("Software"));
 
 	/* TRANSLATORS: well, we seem to think so, anyway */
 	gtk_about_dialog_set_comments (dialog, _("A nice way to manage the "
