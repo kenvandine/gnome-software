@@ -114,6 +114,7 @@ struct _GsShellDetails
 	GtkWidget		*label_details_kudo_integration;
 	GtkWidget		*label_details_kudo_translated;
 	GtkWidget		*label_details_kudo_updated;
+	GtkWidget               *box_not_sandboxed_warning;
 };
 
 G_DEFINE_TYPE (GsShellDetails, gs_shell_details, GS_TYPE_PAGE)
@@ -827,6 +828,14 @@ gs_shell_details_refresh_all (GsShellDetails *self)
 	if (gs_app_get_state (self->app) == AS_APP_STATE_AVAILABLE_LOCAL &&
 	    history->len == 0)
 		gtk_widget_set_visible (self->button_history, FALSE);
+
+	/* Display a warning about non-sandboxed apps that may come
+	 * from third party sources.  Currently only checking snaps. */
+	ret = FALSE;
+	if (g_strcmp0 (gs_app_get_management_plugin (self->app), "snap") == 0) {
+		ret |= (kudos & GS_APP_KUDO_SANDBOXED) == 0;
+	}
+	gtk_widget_set_visible (self->box_not_sandboxed_warning, ret);
 
 	/* are we trying to replace something in the baseos */
 	gtk_widget_set_visible (self->infobar_details_package_baseos,
@@ -1719,6 +1728,7 @@ gs_shell_details_class_init (GsShellDetailsClass *klass)
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_kudo_integration);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_kudo_translated);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_kudo_updated);
+	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, box_not_sandboxed_warning);
 }
 
 /**
