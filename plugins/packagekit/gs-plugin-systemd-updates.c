@@ -153,6 +153,9 @@ gs_plugin_add_updates (GsPlugin *plugin,
 	g_autoptr(GError) error_local = NULL;
 	g_auto(GStrv) package_ids = NULL;
 
+	/* In Ubuntu we're using Update Manager for this, for now. */
+	return TRUE;
+
 	/* get the id's if the file exists */
 	package_ids = pk_offline_get_prepared_ids (&error_local);
 	if (package_ids == NULL) {
