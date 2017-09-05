@@ -22,12 +22,14 @@
 #include <config.h>
 
 #include <gio/gdesktopappinfo.h>
+#include <glib/gi18n.h>
 #include <snapd-glib/snapd-glib.h>
 #include <gnome-software.h>
 
 struct GsPluginData {
 	SnapdAuthData		*auth_data;
 	gboolean		 snapd_supports_polkit;
+	gchar			*store_name;
 	SnapdSystemConfinement	 system_confinement;
 	GsAuth			*auth;
 
@@ -208,6 +210,10 @@ gs_plugin_setup (GsPlugin *plugin, GCancellable *cancellable, GError **error)
 	system_information = snapd_client_get_system_information_sync (client, cancellable, error);
 	if (system_information == NULL)
 		return FALSE;
+	priv->store_name = g_strdup (snapd_system_information_get_store (system_information));
+	if (priv->store_name == NULL)
+		priv->store_name = g_strdup (/* TRANSLATORS: default snap store name */
+					     _("Snap Store"));
 	priv->system_confinement = snapd_system_information_get_confinement (system_information);
 
 	version = g_strsplit (snapd_system_information_get_version (system_information), ".", -1);
@@ -387,6 +393,7 @@ void
 gs_plugin_destroy (GsPlugin *plugin)
 {
 	GsPluginData *priv = gs_plugin_get_data (plugin);
+	g_free (priv->store_name);
 	g_clear_object (&priv->auth);
 	g_clear_pointer (&priv->store_snaps, g_hash_table_unref);
 	g_mutex_clear (&priv->store_snaps_lock);
@@ -686,6 +693,7 @@ gs_plugin_refine_app (GsPlugin *plugin,
 		      GCancellable *cancellable,
 		      GError **error)
 {
+	GsPluginData *priv = gs_plugin_get_data (plugin);
 	g_autoptr(SnapdClient) client = NULL;
 	const gchar *id, *icon_url = NULL;
 	g_autoptr(SnapdSnap) local_snap = NULL;
@@ -732,7 +740,7 @@ gs_plugin_refine_app (GsPlugin *plugin,
 	store_snap = get_store_snap (plugin, id, cancellable, NULL);
 	if (store_snap != NULL) {
 		GPtrArray *screenshots;
-		const gchar *name, *screenshot_url = NULL;
+		const gchar *name;
 
 		if (gs_app_get_state (app) == AS_APP_STATE_UNKNOWN)
 			gs_app_set_state (app, AS_APP_STATE_AVAILABLE);
@@ -778,20 +786,10 @@ gs_plugin_refine_app (GsPlugin *plugin,
 				as_image_set_height (image, snapd_screenshot_get_height (screenshot));
 				as_screenshot_add_image (ss, image);
 				gs_app_add_screenshot (app, ss);
-
-				/* fall back to the screenshot */
-				if (screenshot_url == NULL)
-					screenshot_url = snapd_screenshot_get_url (screenshot);
 			}
 		}
 
-		/* use some heuristics to guess the application origin */
-		if (gs_app_get_origin_hostname (app) == NULL) {
-			if (icon_url != NULL && !g_str_has_prefix (icon_url, "/"))
-				gs_app_set_origin_hostname (app, icon_url);
-			else if (screenshot_url != NULL)
-				gs_app_set_origin_hostname (app, screenshot_url);
-		}
+		gs_app_set_origin (app, priv->store_name);
 	}
 
 	/* load icon if requested */
