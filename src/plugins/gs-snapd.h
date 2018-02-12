@@ -48,6 +48,21 @@ JsonObject *gs_snapd_get_interfaces	(GCancellable	*cancellable,
 
 gboolean gs_snapd_install		(const gchar	*name,
 					 gboolean	 classic,
+					 const gchar	*channel,
+					 GsSnapdProgressCallback callback,
+					 gpointer	 user_data,
+					 GCancellable	*cancellable,
+					 GError		**error);
+
+gboolean gs_snapd_refresh		(const gchar	*name,
+					 const gchar	*channel,
+					 GsSnapdProgressCallback callback,
+					 gpointer	 user_data,
+					 GCancellable	*cancellable,
+					 GError		**error);
+
+gboolean gs_snapd_switch		(const gchar	*name,
+					 const gchar	*channel,
 					 GsSnapdProgressCallback callback,
 					 gpointer	 user_data,
 					 GCancellable	*cancellable,

@@ -179,6 +179,11 @@ typedef gboolean	 (*GsPluginActionFunc)		(GsPlugin	*plugin,
 							 GsApp		*app,
 							 GCancellable	*cancellable,
 							 GError		**error);
+typedef gboolean	 (*GsPluginSwitchFunc)		(GsPlugin	*plugin,
+							 GsApp		*app,
+							 GsChannel	*channel,
+							 GCancellable	*cancellable,
+							 GError		**error);
 typedef gboolean	 (*GsPluginReviewFunc)		(GsPlugin	*plugin,
 							 GsApp		*app,
 							 GsReview	*review,
@@ -343,6 +348,11 @@ gboolean	 gs_plugin_update_cancel		(GsPlugin	*plugin,
 							 GError		**error);
 gboolean	 gs_plugin_app_install			(GsPlugin	*plugin,
 							 GsApp		*app,
+							 GCancellable	*cancellable,
+							 GError		**error);
+gboolean	 gs_plugin_app_switch_channel		(GsPlugin	*plugin,
+							 GsApp		*app,
+							 GsChannel	*channel,
 							 GCancellable	*cancellable,
 							 GError		**error);
 gboolean	 gs_plugin_app_remove			(GsPlugin	*plugin,

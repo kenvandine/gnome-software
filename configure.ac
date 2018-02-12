@@ -256,7 +256,7 @@ AC_ARG_ENABLE(snap,
               enable_snap=maybe)
 AS_IF([test "x$enable_snap" != "xno"], [
     PKG_CHECK_MODULES(SNAP,
-                      [snapd-glib],
+                      [snapd-glib >= 1.31],
                       [have_snap=yes],
                       [have_snap=no])
 ], [

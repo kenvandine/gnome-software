@@ -80,6 +80,8 @@ GDesktopAppInfo *gs_utils_get_desktop_app_info	(const gchar	*id);
 
 gchar		*gs_utils_get_url_scheme	(const gchar	*url);
 gchar		*gs_utils_get_url_path		(const gchar	*url);
+gchar		*gs_utils_get_url_query_param	(const gchar	*url,
+						 const gchar	*name);
 
 G_END_DECLS
 

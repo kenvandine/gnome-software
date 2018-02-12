@@ -91,6 +91,7 @@ noinst_PROGRAMS =					\
 gnome_software_cmd_SOURCES =				\
 	gs-app.c					\
 	gs-auth.c					\
+	gs-channel.c					\
 	gs-review.c					\
 	gs-cmd.c					\
 	gs-utils.c					\
@@ -126,6 +127,8 @@ gnome_software_SOURCES =				\
 	gs-auth-dialog.h				\
 	gs-category.c					\
 	gs-category.h					\
+	gs-channel.c					\
+	gs-channel.h					\
 	gs-app-addon-row.c				\
 	gs-app-addon-row.h				\
 	gs-app-row.c					\

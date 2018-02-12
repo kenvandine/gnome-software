@@ -95,6 +95,8 @@ struct _GsApp
 	guint			 progress;
 	GHashTable		*metadata;
 	GdkPixbuf		*pixbuf;
+	GPtrArray		*channels;
+	GsChannel		*active_channel;
 	GPtrArray		*addons; /* of GsApp */
 	GHashTable		*addons_hash; /* of "id" */
 	GPtrArray		*related; /* of GsApp */
@@ -341,6 +343,18 @@ gs_app_to_string (GsApp *app)
 			tmp = g_ptr_array_index (app->keywords, i);
 			gs_app_kv_lpad (str, "keyword", tmp);
 		}
+	}
+	for (i = 0; i < app->channels->len; i++) {
+		GsChannel *channel = g_ptr_array_index (app->channels, i);
+		g_autofree gchar *key = NULL;
+		key = g_strdup_printf ("channel-%02u", i);
+		gs_app_kv_printf (str, key, "%s [%s]",
+		                  gs_channel_get_name (channel),
+		                  gs_channel_get_version (channel));
+	}
+	if (app->active_channel != NULL) {
+		gs_app_kv_printf (str, "active-channel", "%s",
+		                  gs_channel_get_name (app->active_channel));
 	}
 	keys = g_hash_table_get_keys (app->metadata);
 	for (l = keys; l != NULL; l = l->next) {
@@ -2130,6 +2144,16 @@ gs_app_add_kudo (GsApp *app, GsAppKudo kudo)
 }
 
 /**
+ * gs_app_remove_kudo:
+ */
+void
+gs_app_remove_kudo (GsApp *app, GsAppKudo kudo)
+{
+	g_return_if_fail (GS_IS_APP (app));
+	app->kudos &= ~kudo;
+}
+
+/**
  * gs_app_get_kudos:
  */
 guint64
@@ -2265,6 +2289,48 @@ gs_app_set_last_error (GsApp *app, GError *error)
 }
 
 /**
+ * gs_app_add_channel:
+ */
+void
+gs_app_add_channel (GsApp *app, GsChannel *channel)
+{
+	g_return_if_fail (GS_IS_APP (app));
+	g_return_if_fail (GS_IS_CHANNEL (channel));
+	g_ptr_array_add (app->channels, g_object_ref (channel));
+}
+
+/**
+ * gs_app_get_channels:
+ */
+GPtrArray *
+gs_app_get_channels (GsApp *app)
+{
+	g_return_val_if_fail (GS_IS_APP (app), NULL);
+	return app->channels;
+}
+
+/**
+ * gs_app_set_active_channel:
+ */
+void
+gs_app_set_active_channel (GsApp *app, GsChannel *channel)
+{
+	g_return_if_fail (GS_IS_APP (app));
+	g_return_if_fail (GS_IS_CHANNEL (channel));
+	g_set_object (&app->active_channel, channel);
+}
+
+/**
+ * gs_app_get_active_channel:
+ */
+GsChannel *
+gs_app_get_active_channel (GsApp *app)
+{
+	g_return_val_if_fail (GS_IS_APP (app), NULL);
+	return app->active_channel;
+}
+
+/**
  * gs_app_get_property:
  */
 static void
@@ -2378,6 +2444,8 @@ gs_app_dispose (GObject *object)
 	g_clear_pointer (&app->related, g_ptr_array_unref);
 	g_clear_pointer (&app->screenshots, g_ptr_array_unref);
 	g_clear_pointer (&app->reviews, g_ptr_array_unref);
+	g_clear_pointer (&app->channels, g_ptr_array_unref);
+	g_clear_object (&app->active_channel);
 
 	G_OBJECT_CLASS (gs_app_parent_class)->dispose (object);
 }
@@ -2535,6 +2603,7 @@ gs_app_init (GsApp *app)
 	app->history = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	app->screenshots = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	app->reviews = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	app->channels = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	app->metadata = g_hash_table_new_full (g_str_hash,
 	                                        g_str_equal,
 	                                        g_free,

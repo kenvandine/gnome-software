@@ -671,6 +671,7 @@ static gboolean
 send_package_action (const gchar *name,
 		     const gchar *action,
 		     gboolean classic,
+		     const gchar *channel,
 		     GsSnapdProgressCallback callback,
 		     gpointer user_data,
 		     GCancellable *cancellable,
@@ -693,6 +694,8 @@ send_package_action (const gchar *name,
 	g_string_append_printf (content, "\"action\": \"%s\"", action);
 	if (classic)
 		g_string_append (content, ", \"classic\": true");
+	if (channel != NULL)
+		g_string_append_printf (content, ", \"channel\": \"%s\"", channel);
 	g_string_append (content, "}");
 	path = g_strdup_printf ("/v2/snaps/%s", name);
 	if (!send_request ("POST", path, content->str,
@@ -753,12 +756,29 @@ send_package_action (const gchar *name,
 }
 
 gboolean
-gs_snapd_install (const gchar *name, gboolean classic,
+gs_snapd_install (const gchar *name, gboolean classic, const gchar *channel,
 		  GsSnapdProgressCallback callback, gpointer user_data,
 		  GCancellable *cancellable,
 		  GError **error)
 {
-	return send_package_action (name, "install", classic, callback, user_data, cancellable, error);
+	return send_package_action (name, "install", classic, channel, callback, user_data, cancellable, error);
+}
+
+gboolean
+gs_snapd_refresh (const gchar *name, const gchar *channel,
+		  GsSnapdProgressCallback callback, gpointer user_data,
+		  GCancellable *cancellable,
+		  GError **error)
+{
+	return send_package_action (name, "refresh", FALSE, channel, callback, user_data, cancellable, error);
+}
+
+gboolean
+gs_snapd_switch (const gchar *name, const gchar *channel,
+		 GsSnapdProgressCallback callback, gpointer user_data,
+		 GCancellable *cancellable, GError **error)
+{
+	return send_package_action (name, "switch", FALSE, channel, callback, user_data, cancellable, error);
 }
 
 gboolean
@@ -766,7 +786,7 @@ gs_snapd_remove (const gchar *name,
 		 GsSnapdProgressCallback callback, gpointer user_data,
 		 GCancellable *cancellable, GError **error)
 {
-	return send_package_action (name, "remove", FALSE, callback, user_data, cancellable, error);
+	return send_package_action (name, "remove", FALSE, NULL, callback, user_data, cancellable, error);
 }
 
 gchar *

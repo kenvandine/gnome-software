@@ -134,7 +134,10 @@ find_snaps (GsPlugin *plugin, const gchar *section, gboolean match_name, const g
 	if (snaps == NULL)
 		return NULL;
 
-	store_snap_cache_update (plugin, snaps);
+	/* Only cache name results because they return channel information
+	 * https://forum.snapcraft.io/t/channel-maps-list-is-empty-when-using-v1-snaps-search-as-opposed-to-using-v2-snaps-details */
+	if (match_name)
+		store_snap_cache_update (plugin, snaps);
 
 	return g_steal_pointer (&snaps);
 }
@@ -176,6 +179,8 @@ snap_to_app (GsPlugin *plugin, JsonObject *snap)
 	gs_app_set_metadata (app, "snap::confinement", confinement);
 	if (plugin->priv->system_is_confined && g_strcmp0 (confinement, "strict") == 0)
 		gs_app_add_kudo (app, GS_APP_KUDO_SANDBOXED);
+	else
+		gs_app_remove_kudo (app, GS_APP_KUDO_SANDBOXED);
 
 	return app;
 }
@@ -192,6 +197,7 @@ gs_plugin_url_to_app (GsPlugin *plugin,
 	JsonObject *snap;
 	g_autofree gchar *path = NULL;
 	g_autoptr(GsApp) app = NULL;
+	g_autofree gchar *channel_name = NULL;
 
 	/* not us */
 	scheme = gs_utils_get_url_scheme (url);
@@ -206,6 +212,9 @@ gs_plugin_url_to_app (GsPlugin *plugin,
 
 	snap = json_array_get_object_element (snaps, 0);
 	app = snap_to_app (plugin, snap);
+	channel_name = gs_utils_get_url_query_param (url, "channel");
+	if (channel_name != NULL)
+		gs_app_set_metadata (app, "snap::channel", channel_name);
 	gs_plugin_add_app (list, app);
 
 	return TRUE;
@@ -533,6 +542,150 @@ get_store_snap (GsPlugin *plugin, const gchar *name, GCancellable *cancellable, 
 	return json_object_ref (json_array_get_object_element (snaps, 0));
 }
 
+static void
+add_channel (GsApp *app, const gchar *name, const gchar *version, const gchar *tracking_channel)
+{
+	g_autoptr(GsChannel) c = NULL;
+
+	c = gs_channel_new (name, version);
+	gs_app_add_channel (app, c);
+	if ((tracking_channel == NULL && gs_app_get_active_channel (app) == NULL) ||
+	    g_strcmp0 (tracking_channel, name) == 0)
+		gs_app_set_active_channel (app, c);
+}
+
+static gboolean
+is_risk (const gchar *risk)
+{
+	return g_strcmp0 (risk, "stable") == 0 || g_strcmp0 (risk, "candidate") == 0 || g_strcmp0 (risk, "beta") == 0 || g_strcmp0 (risk, "edge") == 0;
+}
+
+static void
+parse_channel_name (const gchar *name, gchar **track, gchar **risk, gchar **branch)
+{
+	g_auto(GStrv) tokens = NULL;
+
+	tokens = g_strsplit (name, "/", -1);
+	switch (g_strv_length (tokens)) {
+	case 1:
+		if (is_risk (tokens[0])) {
+			if (track != NULL)
+				*track = g_strdup ("latest");
+			if (risk != NULL)
+				*risk = g_strdup (tokens[0]);
+		}
+		else {
+			if (track != NULL)
+				*track = g_strdup (tokens[0]);
+			if (risk != NULL)
+				*risk = g_strdup ("stable");
+		}
+		if (branch != NULL)
+			*branch = NULL;
+		break;
+	case 2:
+		if (is_risk (tokens[0])) {
+			if (track != NULL)
+				*track = g_strdup ("latest");
+			if (risk != NULL)
+				*risk = g_strdup (tokens[0]);
+			if (branch != NULL)
+				*branch = g_strdup (tokens[1]);
+		}
+		else {
+			if (track != NULL)
+				*track = g_strdup (tokens[0]);
+			if (risk != NULL)
+				*risk = g_strdup (tokens[1]);
+			if (branch != NULL)
+				*branch = NULL;
+		}
+		break;
+	case 3:
+		if (track != NULL)
+			*track = g_strdup (tokens[0]);
+		if (risk != NULL)
+			*risk = g_strdup (tokens[1]);
+		if (branch != NULL)
+			*branch = g_strdup (tokens[2]);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+refine_channels (GsApp *app, JsonObject *snap, const gchar *tracking_channel)
+{
+	JsonArray *tracks;
+	guint i;
+
+	/* already refined... */
+	if (gs_app_get_channels (app)->len > 0)
+		return;
+
+	tracks = json_object_get_array_member (snap, "tracks");
+	for (i = 0; i < json_array_get_length (tracks); i++) {
+		const gchar *track = json_array_get_string_element (tracks, i);
+		const gchar *risks[] = {"stable", "candidate", "beta", "edge", NULL};
+		g_autofree gchar *last_version = NULL;
+		guint j;
+		gboolean have_risk = FALSE;
+
+		last_version = g_strdup (json_object_get_string_member (snap, "version"));
+		for (j = 0; risks[j] != NULL; j++) {
+			const gchar *risk = risks[j];
+			JsonObject *channels;
+			g_autofree gchar *name = NULL;
+			g_autofree gchar *version = NULL;
+			JsonObjectIter channel_iter;
+			const gchar *channel_name;
+			JsonNode *channel_node;
+
+			channels = json_object_get_object_member (snap, "channels");
+
+			if (strcmp (track, "latest") == 0)
+				name = g_strdup (risk);
+			else
+				name = g_strdup_printf ("%s/%s", track, risk);
+			json_object_iter_init (&channel_iter, channels);
+			while (json_object_iter_next (&channel_iter, &channel_name, &channel_node)) {
+				JsonObject *channel = json_node_get_object (channel_node);
+				if (strcmp (json_object_get_string_member (channel, "channel"), name) == 0) {
+					version = g_strdup (json_object_get_string_member (channel, "version"));
+					break;
+				}
+			}
+			if (version == NULL) {
+				if (!have_risk)
+					continue;
+				version = g_strdup (last_version);
+			}
+			have_risk = TRUE;
+			add_channel (app, name, version, tracking_channel);
+
+			/* add any branches for this track/risk */
+			json_object_iter_init (&channel_iter, channels);
+			while (json_object_iter_next (&channel_iter, &channel_name, &channel_node)) {
+				JsonObject *channel = json_node_get_object (channel_node);
+				g_autofree gchar *channel_track = NULL;
+				g_autofree gchar *channel_risk = NULL;
+				g_autofree gchar *channel_branch = NULL;
+
+				parse_channel_name (channel_name, &channel_track, &channel_risk, &channel_branch);
+				if (channel_branch != NULL &&
+				    g_strcmp0 (channel_track, track) == 0 &&
+				    g_strcmp0 (channel_risk, risk) == 0) {
+					add_channel (app, json_object_get_string_member (channel, "channel"), json_object_get_string_member (channel, "version"), tracking_channel);
+				}
+			}
+
+			g_free (last_version);
+			last_version = g_strdup (version);
+		}
+	}
+}
+
 gboolean
 gs_plugin_refine_app (GsPlugin *plugin,
 		      GsApp *app,
@@ -540,9 +693,11 @@ gs_plugin_refine_app (GsPlugin *plugin,
 		      GCancellable *cancellable,
 		      GError **error)
 {
-	const gchar *id, *icon_url = NULL;
+	const gchar *id, *tracking_channel = NULL, *name;
+	g_autofree gchar *store_version = NULL;
 	g_autoptr(JsonObject) local_snap = NULL;
 	g_autoptr(JsonObject) store_snap = NULL;
+	JsonObject *snap;
 
 	/* not us */
 	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") != 0)
@@ -554,35 +709,69 @@ gs_plugin_refine_app (GsPlugin *plugin,
 	if (id == NULL)
 		return TRUE;
 
-	/* get information from installed snaps */
+	/* get information from local snaps and store */
 	local_snap = gs_snapd_list_one (id, cancellable, NULL);
+	store_snap = get_store_snap (plugin, id, cancellable, NULL);
+
+	/* get latest upstream version */
+	if (local_snap != NULL)
+		tracking_channel = json_object_get_string_member (local_snap, "tracking-channel");
+	else
+		tracking_channel = gs_app_get_metadata_item (app, "snap::channel");
+	if (store_snap != NULL) {
+		refine_channels (app, store_snap, tracking_channel);
+
+		if (gs_app_get_active_channel (app) != NULL)
+			store_version = g_strdup (gs_channel_get_version (gs_app_get_active_channel (app)));
+		else
+			store_version = g_strdup (json_object_get_string_member (store_snap, "version"));
+	}
+
+	gs_app_set_update_version (app, NULL);
 	if (local_snap != NULL) {
-		JsonArray *apps;
+		if (store_version != NULL && g_strcmp0 (store_version, json_object_get_string_member (local_snap, "version")) != 0) {
+			gs_app_set_update_version (app, store_version);
+			gs_app_set_state (app, AS_APP_STATE_UPDATABLE_LIVE);
+		}
+		else {
+			// Workaround it not being valid to switch from updatable to installed (e.g. if you switch channels)
+			if (gs_app_get_state (app) == AS_APP_STATE_UPDATABLE_LIVE)
+				gs_app_set_state (app, AS_APP_STATE_UNKNOWN);
+			gs_app_set_state (app, AS_APP_STATE_INSTALLED);
+		}
+	}
+	else
+		gs_app_set_state (app, AS_APP_STATE_AVAILABLE);
+
+	/* use store information for basic metadata over local information */
+	snap = store_snap != NULL ? store_snap : local_snap;
+	name = get_snap_title (snap);
+	gs_app_set_name (app, GS_APP_QUALITY_NORMAL, name);
+	gs_app_set_summary (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (snap, "summary"));
+	gs_app_set_description (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (snap, "description"));
+	if (json_object_has_member (snap, "license"))
+		gs_app_set_license (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (snap, "license"));
+	if (json_object_has_member (snap, "developer"))
+		gs_app_set_developer_name (app, json_object_get_string_member (snap, "developer"));
+
+	snap = local_snap != NULL ? local_snap : store_snap;
+	gs_app_set_version (app, json_object_get_string_member (snap, "version"));
+
+	/* add information specific to installed snaps */
+	if (local_snap != NULL) {
+		JsonArray *apps = NULL;
 		g_autoptr(GDateTime) install_date = NULL;
 		const gchar *launch_name = NULL;
 
-		if (gs_app_get_state (app) == AS_APP_STATE_UNKNOWN)
-			gs_app_set_state (app, AS_APP_STATE_INSTALLED);
-
-		gs_app_set_name (app, GS_APP_QUALITY_NORMAL, get_snap_title (local_snap));
-		gs_app_set_summary (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (local_snap, "summary"));
-		gs_app_set_description (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (local_snap, "description"));
-		if (json_object_has_member (local_snap, "license"))
-			gs_app_set_license (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (local_snap, "license"));
-		gs_app_set_version (app, json_object_get_string_member (local_snap, "version"));
 		if (json_object_has_member (local_snap, "installed-size"))
 			gs_app_set_size (app, json_object_get_int_member (local_snap, "installed-size"));
 		if (json_object_has_member (local_snap, "install-date"))
 			install_date = gs_snapd_parse_date (json_object_get_string_member (local_snap, "install-date"));
 		if (install_date != NULL)
 			gs_app_set_install_date (app, g_date_time_to_unix (install_date));
-		if (json_object_has_member (local_snap, "developer"))
-			gs_app_set_developer_name (app, json_object_get_string_member (local_snap, "developer"));
-		icon_url = json_object_get_string_member (local_snap, "icon");
-		if (g_strcmp0 (icon_url, "") == 0)
-			icon_url = NULL;
 
-		apps = json_object_get_array_member (local_snap, "apps");
+		if (json_object_has_member (local_snap, "apps"))
+			apps = json_object_get_array_member (local_snap, "apps");
 		if (apps && json_array_get_length (apps) > 0)
 			launch_name = json_object_get_string_member (json_array_get_object_element (apps, 0), "name");
 
@@ -592,27 +781,10 @@ gs_plugin_refine_app (GsPlugin *plugin,
 			gs_app_add_quirk (app, AS_APP_QUIRK_NOT_LAUNCHABLE);
 	}
 
-	/* get information from snap store */
-	store_snap = get_store_snap (plugin, id, cancellable, NULL);
+	/* add information specific to store snaps */
 	if (store_snap != NULL) {
-		if (gs_app_get_state (app) == AS_APP_STATE_UNKNOWN)
-			gs_app_set_state (app, AS_APP_STATE_AVAILABLE);
-
-		gs_app_set_name (app, GS_APP_QUALITY_NORMAL, get_snap_title (store_snap));
-		gs_app_set_summary (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (store_snap, "summary"));
-		gs_app_set_description (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (store_snap, "description"));
-		if (json_object_has_member (store_snap, "license"))
-			gs_app_set_license (app, GS_APP_QUALITY_NORMAL, json_object_get_string_member (store_snap, "license"));
-		gs_app_set_version (app, json_object_get_string_member (store_snap, "version"));
 		if (gs_app_get_size (app) == GS_APP_SIZE_UNKNOWN && json_object_has_member (store_snap, "download-size"))
 			gs_app_set_size (app, json_object_get_int_member (store_snap, "download-size"));
-		if (json_object_has_member (store_snap, "developer"))
-			gs_app_set_developer_name (app, json_object_get_string_member (store_snap, "developer"));
-		if (icon_url == NULL) {
-			icon_url = json_object_get_string_member (store_snap, "icon");
-			if (g_strcmp0 (icon_url, "") == 0)
-				icon_url = NULL;
-		}
 
 		if (json_object_has_member (store_snap, "screenshots") && gs_app_get_screenshots (app)->len == 0) {
 			JsonArray *screenshots;
@@ -651,6 +823,18 @@ gs_plugin_refine_app (GsPlugin *plugin,
 
 	/* load icon if requested */
 	if (gs_app_get_pixbuf (app) == NULL && gs_app_get_icon (app) == NULL) {
+		const gchar *icon_url = NULL;
+
+		if (local_snap != NULL && json_object_has_member (local_snap, "icon")) {
+			icon_url = json_object_get_string_member (local_snap, "icon");
+			if (g_strcmp0 (icon_url, "") == 0)
+				icon_url = NULL;
+		}
+		if (icon_url == NULL && store_snap != NULL && json_object_has_member (store_snap, "icon")) {
+			icon_url = json_object_get_string_member (store_snap, "icon");
+			if (g_strcmp0 (icon_url, "") == 0)
+				icon_url = NULL;
+		}
 		if (!load_icon (plugin, app, icon_url, cancellable, error))
 			return FALSE;
 	}
@@ -701,21 +885,38 @@ gs_plugin_app_install (GsPlugin *plugin,
 {
 	ProgressData data;
 	gboolean classic = FALSE;
+	const gchar *channel = NULL;
 
 	/* We can only install apps we know of */
 	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") != 0)
 		return TRUE;
 
-	gs_app_set_state (app, AS_APP_STATE_INSTALLING);
-	if (g_strcmp0 (gs_app_get_metadata_item (app, "snap::confinement"), "classic") == 0)
-		classic = TRUE;
-	data.plugin = plugin;
-	data.app = app;
-	if (!gs_snapd_install (gs_app_get_id (app), classic, progress_cb, &data, cancellable, error)) {
-		gs_app_set_state (app, AS_APP_STATE_AVAILABLE);
-		return FALSE;
+	if (gs_app_get_active_channel (app) != NULL)
+		channel = gs_channel_get_name (gs_app_get_active_channel (app));
+
+	if (gs_app_get_state (app) == AS_APP_STATE_UPDATABLE_LIVE) {
+		gs_app_set_state (app, AS_APP_STATE_INSTALLING);
+		data.plugin = plugin;
+		data.app = app;
+		if (!gs_snapd_refresh (gs_app_get_id (app), channel, progress_cb, &data, cancellable, error)) {
+			gs_app_set_state (app, AS_APP_STATE_UPDATABLE_LIVE);
+			return FALSE;
+		}
+		gs_app_set_state (app, AS_APP_STATE_INSTALLED);
 	}
-	gs_app_set_state (app, AS_APP_STATE_INSTALLED);
+	else {
+		gs_app_set_state (app, AS_APP_STATE_INSTALLING);
+		if (g_strcmp0 (gs_app_get_metadata_item (app, "snap::confinement"), "classic") == 0)
+			classic = TRUE;
+		data.plugin = plugin;
+		data.app = app;
+		if (!gs_snapd_install (gs_app_get_id (app), classic, channel, progress_cb, &data, cancellable, error)) {
+			gs_app_set_state (app, AS_APP_STATE_AVAILABLE);
+			return FALSE;
+		}
+		gs_app_set_state (app, AS_APP_STATE_INSTALLED);
+	}
+
 	return TRUE;
 }
 
@@ -787,6 +988,23 @@ gs_plugin_launch (GsPlugin *plugin,
 		return FALSE;
 
 	return g_app_info_launch (info, NULL, NULL, error);
+}
+
+gboolean
+gs_plugin_app_switch_channel (GsPlugin *plugin,
+			      GsApp *app,
+			      GsChannel *channel,
+			      GCancellable *cancellable,
+			      GError **error)
+{
+	/* We can only modify apps we know of */
+	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") != 0)
+		return TRUE;
+
+	if (!gs_snapd_switch (gs_app_get_id (app), gs_channel_get_name (channel), NULL, NULL, cancellable, error))
+		return FALSE;
+
+	return TRUE;
 }
 
 gboolean

@@ -229,6 +229,15 @@ void		 gs_plugin_loader_app_action_async	(GsPluginLoader	*plugin_loader,
 gboolean	 gs_plugin_loader_app_action_finish	(GsPluginLoader	*plugin_loader,
 							 GAsyncResult	*res,
 							 GError		**error);
+void		 gs_plugin_loader_app_switch_async	(GsPluginLoader	*plugin_loader,
+							 GsApp		*app,
+							 GsChannel	*channel,
+							 GCancellable	*cancellable,
+							 GAsyncReadyCallback callback,
+							 gpointer	 user_data);
+gboolean	 gs_plugin_loader_app_switch_finish	(GsPluginLoader	*plugin_loader,
+							 GAsyncResult	*res,
+							 GError		**error);
 void		 gs_plugin_loader_review_action_async	(GsPluginLoader	*plugin_loader,
 							 GsApp		*app,
 							 GsReview	*review,

@@ -89,6 +89,8 @@ struct _GsShellDetails
 	GtkWidget		*label_details_size_value;
 	GtkWidget		*label_details_updated_title;
 	GtkWidget		*label_details_updated_value;
+	GtkWidget		*label_details_channel_title;
+	GtkWidget		*button_details_channel;
 	GtkWidget		*label_details_version_value;
 	GtkWidget		*label_failed;
 	GtkWidget		*label_pending;
@@ -106,6 +108,7 @@ struct _GsShellDetails
 	GtkWidget		*spinner_install_remove;
 	GtkWidget		*stack_details;
 	GtkWidget		*grid_details_kudo;
+	GtkWidget		*grid_popover_channel;
 	GtkWidget		*image_details_kudo_docs;
 	GtkWidget		*image_details_kudo_integration;
 	GtkWidget		*image_details_kudo_translated;
@@ -114,6 +117,7 @@ struct _GsShellDetails
 	GtkWidget		*label_details_kudo_integration;
 	GtkWidget		*label_details_kudo_translated;
 	GtkWidget		*label_details_kudo_updated;
+	GtkWidget		*popover_channel;
 	GtkWidget               *box_not_sandboxed_warning;
 };
 
@@ -614,6 +618,7 @@ gs_shell_details_refresh_all (GsShellDetails *self)
 	guint64 kudos;
 	guint64 updated;
 	guint64 user_integration_bf;
+	GsChannel *channel;
 	g_autoptr(GError) error = NULL;
 
 	/* change widgets */
@@ -682,6 +687,13 @@ gs_shell_details_refresh_all (GsShellDetails *self)
 		gtk_widget_set_visible (self->label_details_license_title, TRUE);
 		gtk_widget_set_visible (self->label_details_license_value, TRUE);
 	}
+
+	/* set channel */
+	channel = gs_app_get_active_channel (self->app);
+	gtk_widget_set_visible (self->label_details_channel_title, channel != NULL);
+	gtk_widget_set_visible (self->button_details_channel, channel != NULL);
+	if (channel != NULL)
+		gtk_button_set_label (GTK_BUTTON (self->button_details_channel), gs_channel_get_name (channel));
 
 	/* set version */
 	tmp = gs_app_get_version (self->app);
@@ -1426,6 +1438,119 @@ gs_shell_details_app_remove_button_cb (GtkWidget *widget, GsShellDetails *self)
 	gs_page_remove_app (GS_PAGE (self), self->app);
 }
 
+typedef struct {
+	GsShellDetails	*self;
+	GsChannel	*channel;
+} GsShellDetailsSwitchHelper;
+
+static void
+gs_shell_details_channel_helper_free (GsShellDetailsSwitchHelper *helper)
+{
+	g_object_unref (helper->self);
+	g_object_unref (helper->channel);
+	g_free (helper);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GsShellDetailsSwitchHelper, gs_shell_details_channel_helper_free);
+
+/**
+ * gs_shell_details_channel_switched_cb:
+ **/
+static void
+gs_shell_details_channel_switched_cb (GObject *source,
+                                      GAsyncResult *res,
+                                      gpointer user_data)
+{
+	g_autoptr(GsShellDetailsSwitchHelper) helper = (GsShellDetailsSwitchHelper *) user_data;
+	GsShellDetails *self = helper->self;
+	GsPluginLoader *plugin_loader = GS_PLUGIN_LOADER (source);
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+
+	ret = gs_plugin_loader_app_switch_finish (plugin_loader,
+						  res,
+						  &error);
+	if (g_error_matches (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_CANCELLED)) {
+		g_debug ("%s", error->message);
+		return;
+	}
+	if (!ret) {
+		g_warning ("failed to switch channel %s: %s",
+		           gs_app_get_id (self->app),
+		           error->message);
+		return;
+	}
+}
+
+/**
+ * gs_shell_details_switch_channel_cb:
+ **/
+static void
+gs_shell_details_switch_channel_cb (GtkWidget *widget, gpointer user_data)
+{
+	g_autoptr(GsShellDetailsSwitchHelper) helper = (GsShellDetailsSwitchHelper *) user_data;
+	GsShellDetails *self = helper->self;
+
+	gtk_widget_hide (self->popover_channel);
+
+	gs_app_set_active_channel (self->app, helper->channel);
+
+	gs_plugin_loader_app_switch_async (self->plugin_loader,
+					   self->app,
+					   helper->channel,
+					   self->cancellable,
+					   gs_shell_details_channel_switched_cb,
+					   helper);
+	g_steal_pointer (&helper);
+
+	gs_shell_details_refresh_all (self);
+}
+
+/**
+ * gs_shell_details_channel_cb:
+ **/
+static void
+gs_shell_details_channel_cb (GtkWidget *widget, GsShellDetails *self)
+{
+	GPtrArray *channels;
+	guint i;
+
+	gs_container_remove_all (GTK_CONTAINER (self->grid_popover_channel));
+	channels = gs_app_get_channels (self->app);
+	for (i = 0; i < channels->len; i++) {
+		GsChannel *channel = g_ptr_array_index (channels, i);
+		GtkWidget *label;
+		GtkWidget *button;
+
+		label = gtk_label_new (gs_channel_get_name (channel));
+		gtk_label_set_xalign (GTK_LABEL (label), 0.0);
+		gtk_widget_show (label);
+		gtk_grid_attach (GTK_GRID (self->grid_popover_channel), label, 0, i, 1, 1);
+
+		label = gtk_label_new (gs_channel_get_version (channel));
+		gtk_label_set_xalign (GTK_LABEL (label), 0.0);
+		gtk_widget_show (label);
+		gtk_grid_attach (GTK_GRID (self->grid_popover_channel), label, 1, i, 1, 1);
+
+		if (channel != gs_app_get_active_channel (self->app)) {
+			GsShellDetailsSwitchHelper *helper = g_new0 (GsShellDetailsSwitchHelper, 1);
+
+			button = gtk_button_new_with_label (_("Switch"));
+			gtk_widget_show (button);
+			gtk_grid_attach (GTK_GRID (self->grid_popover_channel), button, 2, i, 1, 1);
+			helper->self = g_object_ref (self);
+			helper->channel = g_object_ref (channel);
+			g_signal_connect (button, "clicked",
+					  G_CALLBACK (gs_shell_details_switch_channel_cb),
+					  helper);
+		}
+	}
+
+	gtk_widget_show (self->popover_channel);
+}
+
 /**
  * gs_shell_details_app_install_button_cb:
  **/
@@ -1622,6 +1747,9 @@ gs_shell_details_setup (GsShellDetails *self,
 	g_signal_connect (self->button_details_website, "clicked",
 			  G_CALLBACK (gs_shell_details_website_cb),
 			  self);
+	g_signal_connect (self->button_details_channel, "clicked",
+			  G_CALLBACK (gs_shell_details_channel_cb),
+			  self);
 
 	adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (self->scrolledwindow_details));
 	gtk_container_set_focus_vadjustment (GTK_CONTAINER (self->box_details), adj);
@@ -1703,6 +1831,10 @@ gs_shell_details_class_init (GsShellDetailsClass *klass)
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_size_value);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_updated_title);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_updated_value);
+	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_channel_title);
+	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, button_details_channel);
+	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, popover_channel);
+	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, grid_popover_channel);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_details_version_value);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_failed);
 	gtk_widget_class_bind_template_child (widget_class, GsShellDetails, label_pending);

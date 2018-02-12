@@ -26,6 +26,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <appstream-glib.h>
 
+#include "gs-channel.h"
 #include "gs-review.h"
 
 G_BEGIN_DECLS
@@ -238,6 +239,8 @@ void		 gs_app_set_keywords		(GsApp		*app,
 						 GPtrArray	*keywords);
 void		 gs_app_add_kudo		(GsApp		*app,
 						 GsAppKudo	 kudo);
+void		 gs_app_remove_kudo		(GsApp		*app,
+						 GsAppKudo	 kudo);
 guint64		 gs_app_get_kudos		(GsApp		*app);
 guint		 gs_app_get_kudos_percentage	(GsApp		*app);
 gboolean	 gs_app_get_to_be_installed	(GsApp		*app);
@@ -255,6 +258,12 @@ GError		*gs_app_get_last_error		(GsApp		*app);
 void		 gs_app_set_last_error		(GsApp		*app,
 						 GError		*error);
 gboolean	 gs_app_is_installed		(GsApp		*app);
+GPtrArray	*gs_app_get_channels		(GsApp		*app);
+void		 gs_app_add_channel		(GsApp		*app,
+						 GsChannel	*channel);
+void		 gs_app_set_active_channel	(GsApp		*app,
+						 GsChannel	*channel);
+GsChannel	*gs_app_get_active_channel	(GsApp		*app);
 G_END_DECLS
 
 #endif /* __GS_APP_H */
