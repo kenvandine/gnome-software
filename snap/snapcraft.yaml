@@ -23,7 +23,7 @@ slots:
 
 apps:
   gnome-software:
-    command: bin/desktop-launch $SNAP/usr/bin/gnome-software
+    command: bin/classic-launch classic ${SNAP}/usr/bin/gnome-software
     desktop: usr/share/applications/org.gnome.Software.desktop
 
 parts:
@@ -152,7 +152,6 @@ parts:
       - libpolkit-gobject-1-dev
       - libsecret-1-dev
       - libsoup2.4-dev
-      - libsnapd-glib-dev
       - libsqlite3-dev
       - libxml2-utils
       - meson
@@ -168,31 +167,11 @@ parts:
       #- libfwupd2
       - libgudev-1.0-0
       - liboauth0
-      - libsnapd-glib1
       - hicolor-icon-theme
       - humanity-icon-theme
       - light-themes
       - ubuntu-mono
       - ubuntu-settings
-
-  # Extra libraries snapcraft complained about
-  libraries:
-    plugin: nil
-    stage-packages:
-      - libblkid1
-      - libcomerr2
-      - libgcrypt20
-      - libgpg-error0
-      - liblzma5
-      - libmount1
-      - libpcre3
-      - libsystemd0
-      - libtinfo5
-      - libudev1
-      - libuuid1
-      - zlib1g
-      - libgtk2.0-0
-      - libstdc++6
   magic:
     after: [gnome-software]
     plugin: nil
@@ -204,3 +183,8 @@ parts:
       set -eux
       glib-compile-schemas $SNAPCRAFT_PART_INSTALL/usr/share/glib-2.0/schemas
       update-mime-database $SNAPCRAFT_PART_INSTALL/usr/share/mime
+  classic-launch:
+    plugin: dump
+    source: ./snap
+    organize:
+      classic-launch: bin/classic-launch
