@@ -14,13 +14,6 @@ description: |
 grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: classic
 
-slots:
-  # for GtkApplication registration
-  gnome-software:
-    interface: dbus
-    bus: session
-    name: org.gnome.Software
-
 apps:
   gnome-software:
     command: bin/classic-launch classic ${SNAP}/usr/bin/gnome-software
