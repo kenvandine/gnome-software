@@ -106,8 +106,6 @@ parts:
       mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui/
       cp data/icons/hicolor/256x256/org.gnome.Software.png $SNAPCRAFT_PART_INSTALL/meta/gui/
       cp snapbuild/src/org.gnome.Software.desktop $SNAPCRAFT_PART_INSTALL/meta/gui/
-    prepare:
-      sed -i.bak -e 's|Icon=org.gnome.Software$|Icon=${SNAP}/meta/gui/ubuntusoftware.svg|g' src/org.gnome.Software.desktop.in
     plugin: meson
     meson-parameters:
       - --prefix=/snap/gnome-software/current/usr
