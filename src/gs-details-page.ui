@@ -626,7 +626,7 @@
                               <object class="GtkLabel" id="label_not_sandboxed_warning">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">This third party package is not sandboxed.  It will have access to your documents.</property>
+                                <property name="label" translatable="yes">This software will be able to change any files in your home folder.</property>
                                 <property name="xalign">0</property>
                                 <property name="yalign">0.5</property>
                               </object>
